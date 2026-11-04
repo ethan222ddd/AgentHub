@@ -1,0 +1,156 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; base-uri 'none'"><title>AgentHub 使用手冊</title><style>
+:root{color-scheme:light dark;--bg:#fafaf8;--ink:#252923;--muted:#686f65;--line:#dce0d6;--soft:#f0f2ec;--accent:#365d3c}*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:24px}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.9 system-ui,"Microsoft JhengHei",sans-serif}nav{position:fixed;inset:0 auto 0 0;width:265px;overflow:auto;border-right:1px solid var(--line);padding:28px 22px}nav:before{content:"AgentHub · 使用手冊";display:block;font-weight:700;margin-bottom:18px}nav a{display:block;font-size:12px;padding:6px 0;text-decoration:none}main{max-width:1140px;margin-left:265px;padding:45px 55px 100px}h1{font-size:32px;letter-spacing:-.5px}h2{font-size:23px;margin-top:50px;border-top:1px solid var(--line);padding-top:26px}p,li{overflow-wrap:anywhere}a{color:var(--accent)}a:focus-visible{outline:2px solid currentColor;outline-offset:4px}code{background:var(--soft);padding:2px 5px;border-radius:4px;font:12px/1.7 Consolas,monospace}pre{overflow:auto;background:var(--soft);padding:18px;border:1px solid var(--line);border-radius:9px}pre code{padding:0}table{display:block;overflow:auto;border-collapse:collapse;width:100%;font-size:13px}th,td{border:1px solid var(--line);padding:10px 14px;text-align:left;vertical-align:top;min-width:125px}th{background:var(--soft)}li{margin-block:7px}blockquote{border-left:3px solid var(--accent);margin-left:0;padding-left:18px;color:var(--muted)}@media(prefers-color-scheme:dark){:root{--bg:#151813;--ink:#e3e8df;--muted:#a8b2a1;--line:#3a4434;--soft:#232a1f;--accent:#add3a7}}@media(max-width:900px){nav{position:static;width:auto;max-height:260px;border-right:0;border-bottom:1px solid var(--line)}main{margin:0;padding:22px 22px 70px}}@media print{nav{display:none}main{margin:0;padding:0;max-width:none}h2{break-after:avoid}pre,table{overflow:visible}a{color:inherit}body{font-size:11pt}}
+</style></head><body><nav aria-label="章節"><a href="#1-安裝與事前準備">1. 安裝與事前準備</a><a href="#2-第一次使用-先取得一則真實回覆">2. 第一次使用：先取得一則真實回覆</a><a href="#3-git-初始化與隔離工作區">3. Git 初始化與隔離工作區</a><a href="#4-認識主介面">4. 認識主介面</a><a href="#5-發訊息-指定成員與附件">5. 發訊息、指定成員與附件</a><a href="#6-在聊天室選模型與思考強度">6. 在聊天室選模型與思考強度</a><a href="#7-三種協作模式與角色">7. 三種協作模式與角色</a><a href="#8-一個完整的開發範例">8. 一個完整的開發範例</a><a href="#9-讀取檔案-執行命令-聯網與批准">9. 讀取檔案、執行命令、聯網與批准</a><a href="#10-任務-等待-停止與重啟恢復">10. 任務、等待、停止與重啟恢復</a><a href="#11-diff-檢查點與程式碼審查">11. Diff、檢查點與程式碼審查</a><a href="#12-測試-合併-同步與回滾">12. 測試、合併、同步與回滾</a><a href="#13-共享契約-背景與已知差異">13. 共享契約、背景與已知差異</a><a href="#14-剩餘額度與本機預算">14. 剩餘額度與本機預算</a><a href="#15-匯出-備份與還原">15. 匯出、備份與還原</a><a href="#16-常見問題與第一步排查">16. 常見問題與第一步排查</a><a href="#17-完成一次工作的檢查清單">17. 完成一次工作的檢查清單</a><a href="#18-工作流程範本">18. 工作流程範本</a><a href="#19-後續閱讀與開發狀態">19. 後續閱讀與開發狀態</a></nav><main><h1>AgentHub 使用手冊</h1>
+<p>適用版本：<strong>v0.12.0 Windows 桌面版</strong>。更新日期：2026-11-05（Asia/Taipei）。</p>
+<p>AgentHub 讓你在同一聊天室指派真正的 Codex、Claude Code 與 Antigravity 開發專案。每位 Agent 有自己的原生 Session 和 Git 工作區。預設由 App 自動準備版本、配置工作區，在檢查與測試通過後整合到你選擇的資料夾；敏感內容、使用者未提交修改、衝突及失敗會停下提示。目前尚未完成正式 v1.0 全部驗收。</p>
+<h2 id="1-安裝與事前準備">1. 安裝與事前準備</h2>
+<p>在 <code>release/0.12.0</code> 找到 <code>AgentHub Setup 0.12.0.exe</code> 安裝，或使用 <code>AgentHub-0.12.0-portable.exe</code> 免安裝版。也可直接執行 <code>win-unpacked/AgentHub.exe</code>。Portable 預設把資料放在執行檔旁的 <code>AgentHubData</code>，請放在可寫入的資料夾。本版未簽章、沒有自動更新；請確認安裝檔來自你信任的來源。升級前先備份。</p>
+<p>AgentHub 不會代替你安裝或登入三家的 Coding Runtime。請先備妥：</p>
+<table><thead><tr><th>項目</th><th>用途與目前限制</th></tr></thead><tbody><tr><td>Git</td><td>建立版本、隔離工作區、Diff、審核與合併；須能在終端執行 <code>git --version</code>。</td></tr><tr><td>Codex CLI</td><td>使用本機官方 CLI 與其登入；可用 <code>codex --version</code> 確認安裝。</td></tr><tr><td>Claude Code CLI</td><td>本機訂閱模式使用官方 CLI，需要 2.1.295+；本版已實測 2.1.296。</td></tr><tr><td>Antigravity CLI</td><td>執行名稱為 <code>agy</code>；本版實測 1.4.12，必須支援其原生 Sandbox。</td></tr><tr><td>專案工具鏈</td><td>例如 Node.js/npm、Python、.NET、Rust 或 Go；執行該語言的專案測試時才需要。</td></tr><tr><td>Windows</td><td>本版實測 Windows 11 build 26300。Antigravity Sandbox 要求 Windows 11 24H2 及官方指定更新，舊 Windows 不能使用此 Adapter；未完成完整 Windows 10/11 相容矩陣。</td></tr></tbody></table>
+<p>請依各家官方安裝文件取得 CLI：<a href="https://developers.openai.com/codex/">Codex</a>、<a href="https://code.claude.com/docs/en/overview">Claude Code</a>、<a href="https://antigravity.google/docs/">Antigravity</a>。安裝或變更 PATH 後，關閉並重新開啟 AgentHub。</p>
+<h2 id="2-第一次使用-先取得一則真實回覆">2. 第一次使用：先取得一則真實回覆</h2>
+<p>建議先用一個可丟棄的測試資料夾熟悉操作。</p>
+<ol>
+<li>完成官方 CLI 登入。Codex 使用 <code>codex login</code>；Claude 使用 <code>claude auth login</code>，以 <code>claude auth status</code> 檢查；Antigravity 在終端開啟 <code>agy</code> 並完成其官方互動登入。不要把密碼、Token 或 API Key 貼進聊天。</li>
+<li>開啟 AgentHub，點左側「新增專案」，選擇專案根資料夾。現有 Git 專案請選 Repository 根目錄。</li>
+<li>開啟「設定 → 代理」，勾選要使用的成員。Claude 選「本機官方 Claude Code」即可使用該 CLI 自己已登入的訂閱，不需要另外填 API Key。</li>
+<li>按「儲存設定」，再按「偵測與測試連線」，檢查安裝、登入及 Runtime 訊息。這是連線檢查，不代表已完成開發任務。</li>
+<li>回到聊天室，點上方「團隊」，選擇本專案要加入的成員與角色，再按「儲存團隊」。</li>
+<li>等待專案顯示「就緒 · 自動管理」。一般資料夾的 Git 初始化與初始快照已自動處理，Agent 第一次工作時才建立它自己的 Worktree；不用自己執行 Git 指令或按「建立 Worktree」。</li>
+<li>在輸入框輸入 <code>@</code>，從選單選 Codex，送出：<code>只回答 OK，不修改檔案，也不執行工具。</code></li>
+<li>若出現批准，確認 Agent、操作、路徑及風險；同意才按「允許一次」。等待真實回覆。可依序測試 Claude 與 Antigravity。</li>
+</ol>
+<p>之後可以直接輸入「幫我開發一個網站」；自動管理專案的新聊天室預設選擇團隊成員。使用 <code>@Codex</code> 等明確提及可只指派該成員。如果只想記筆記，打開接收者選單改選「僅儲存筆記」。若沒有回覆，先檢查接收者、批准與「活動」的錯誤。</p>
+<h2 id="3-git-初始化與隔離工作區">3. Git 初始化與隔離工作區</h2>
+<p>三位 Agent 不直接共用同一批可寫檔案。每位成員使用自己的 Git Worktree，能降低平行修改互相覆蓋的風險。</p>
+<p>**已存在且有 Commit 的 Git 專案：**直接重用，App 不重新初始化、不更換你的主分支、不清除修改。未提交的主專案內容不會偷偷複製給 Agent；如果會影響整合，App 會停下提示並保留原內容。</p>
+<p><strong>空白、尚未使用 Git 或沒有 Commit 的資料夾：</strong></p>
+<ol>
+<li>選擇資料夾後，App 自動檢查，必要時建立 <code>main</code>、加入基本忽略規則和初始快照。</li>
+<li>正常原始碼會納入快照，因此 Worktree 能看見原有程式。<code>.env</code>、私鑰／憑證等不會自動提交，原檔仍留在主要資料夾。</li>
+<li>遇到不明檔案、疑似寫在原始碼裡的秘密或既有暫存內容，會要求在 App 內檢查。批准排除不明內容後才建立安全快照，不會無條件加入所有檔案。</li>
+<li>發送任務後，自動建立並記住各 Agent 工作區，之後重用。App 重啟不需要重新設定。</li>
+</ol>
+<p>初始快照使用一次性的本機 AgentHub 作者身分，不修改全域 Git 設定。既有暫存內容不會被清除／覆寫；如果暫存版本與工作檔不同，可能需要進一步處理，不能擅自選一個版本丟掉另一個。選到另一個 Repository 的子資料夾時，請重新選該 Repository 根目錄。</p>
+<p>平常不需要操作「變更」。Agent 完成後，App 自動建立安全檢查點、測試整合快照，在主專案乾淨且無衝突時整合；成功訊息會告訴你成果已放回原資料夾。開發中尚未整合的檔案仍在 Worktree，不能把它誤認為已發佈。</p>
+<p>進階使用者仍可在「變更」查看分支、路徑、Diff、排除項目和 Git 操作紀錄。若關閉「自動管理與測試整合」，才改用手動初始化／檢查點／預覽／批准流程。</p>
+<h2 id="4-認識主介面">4. 認識主介面</h2>
+<table><thead><tr><th>位置</th><th>操作</th></tr></thead><tbody><tr><td>左側欄</td><td>新增／選擇專案、開啟對話、搜尋與設定；專案選單可重新命名、開啟資料夾或移除捷徑。</td></tr><tr><td>上方「團隊」</td><td>設定這個專案使用哪些 Agent，以及角色和指示。修改前先停止此專案任務。</td></tr><tr><td>上方「活動」</td><td>開啟右側抽屜，查看任務、批准、工具紀錄、測試結果、用量和背景來源。</td></tr><tr><td>上方「變更」</td><td>開啟 Worktree、Diff、檢查點、合併／同步／回滾預覽。</td></tr><tr><td>右側「審查／契約」</td><td>請其他成員審查確切版本，或查看 Agent 發布的共享契約。</td></tr><tr><td>聊天輸入框</td><td>撰寫需求、選接收者、附加檔案、選模型／強度及協作模式。</td></tr><tr><td>輸入框上方「剩餘額度」</td><td>展開帳號時段額度、重置時間及更新狀態。</td></tr></tbody></table>
+<p>右側抽屜可按關閉按鈕收合。介面預設繁體中文，可在「設定 → 一般」變更語言、明暗主題及啟動方式，最後按「儲存設定」。</p>
+<h2 id="5-發訊息-指定成員與附件">5. 發訊息、指定成員與附件</h2>
+<p>按 Enter 發送；Shift + Enter 換行。輸入 <code>@</code> 後用選單挑選接收者，可指定 Codex、Claude、Antigravity 或 <code>@All</code>。若有多個同名／同供應商實例，以選單確認實際收件成員。</p>
+<p>自動管理專案的新聊天室預設選擇團隊成員，普通文字即可派工。<strong>明確改選「僅儲存筆記」後不會啟動 Agent。</strong> 關閉自動管理的手動專案則維持未選收件者只記筆記的行為。<code>@All</code> 會啟動多位成員，可能同時消耗各家額度；明確的單一提及會覆蓋該次收件對象。</p>
+<p>可以回覆特定訊息、搜尋歷史訊息、複製程式碼及釘選重要訊息作為 Agent 背景。<code>Ctrl + K</code> 開關搜尋，Escape 可收合常用面板／選單。訊息搜尋和背景檢索都不等於保證 Agent 記得所有歷史。</p>
+<p>用輸入框旁的附件按鈕、拖放，或貼上剪貼簿圖片加入附件。三家都已驗證能辨識本機圖像，Antigravity 會使用自己的原生讀圖工具開啟工作區暫存原檔。</p>
+<ul>
+<li>圖片限靜態 PNG、JPEG、WebP，最多 4 張。</li>
+<li>每張最多 5 MiB、單邊 4096px、總像素 8MP；整批附件最多 12 MiB。</li>
+<li>不支援動畫或超大圖片。檔案類型／範圍不符合時會顯示拒絕原因。</li>
+<li>圖片匯入後保存於本機資料庫；但送給 Agent 時，相關內容會傳給該供應商。Local-first 不代表模型在本機執行。</li>
+</ul>
+<h2 id="6-在聊天室選模型與思考強度">6. 在聊天室選模型與思考強度</h2>
+<ol>
+<li>點輸入框底部「模型與思考」。</li>
+<li>選擇該成員可用的模型，再選它支援的「思考強度」。例如帳號提供時，可選 Sol／Astra、Opus／Sonnet、Argon／Flash。</li>
+<li>等待儲存完成，再發送需求。清單未提供模型時，介面會允許輸入帳號支援的模型 ID；不能把啟動指令填在模型欄位。</li>
+</ol>
+<p>模型選擇只影響<strong>目前聊天室</strong>。同一聊天室有多個接收者時，分別設定各成員；「設定 → 代理」則是全域預設。已排程／執行中的任務沿用送出時保存的設定，之後切換不會回頭修改那個回合。</p>
+<p>不是每個模型都有相同強度，請以當下原生 Runtime 清單為準。思考強度不會顯示模型未公開的私人推理。切回 Runtime 預設時，必要時會建立新的原生 Session，避免偷偷沿用舊設定；共享聊天仍保留。</p>
+<h2 id="7-三種協作模式與角色">7. 三種協作模式與角色</h2>
+<table><thead><tr><th>模式</th><th>適合怎麼使用</th></tr></thead><tbody><tr><td>手動（預設）</td><td>你指定每次接收者；Agent 若要啟動其他 Agent，需取得批准。適合先熟悉流程及控制用量。</td></tr><tr><td>協作</td><td>成員可透過結構化橋接請求協助、分工、回報進度；仍受並發、回合數、深度、逾時及用量限制。</td></tr><tr><td>主管</td><td>在聊天室選定主管成員，由它協調工作。一般成員的跨人員委派受主管路由規則限制。</td></tr></tbody></table>
+<p>在「團隊」指派角色，例如 Codex＝後端、Claude＝前端、Antigravity＝QA。角色與代理指示不會授予額外檔案、Shell 或網路權限。</p>
+<p>在「設定 → 協作」調整最大回合數、並發、委派深度、傳送人數、逾時、用量預算及自動審查設定。使用保守預設開始，遇到限制先查看原因，再決定是否調整。</p>
+<p><strong>重要：『先討論、不要改檔』是交給 Agent 的工作要求，不是額外的強制唯讀沙盒。</strong> 在你確認方案前，仍要拒絕不適當的改檔／命令批准。不要把聊天模式當作權限開關。</p>
+<h2 id="8-一個完整的開發範例">8. 一個完整的開發範例</h2>
+<p>完成工作區設定後，先以協作模式送出：</p>
+<pre><code class="language-text">@All 我要製作簡單的待辦事項網站。
+Codex 負責 API，Claude 負責前端，Antigravity 負責測試與安全審查。
+先討論功能、API 格式、測試方式與工作依賴，這一輪不要修改檔案或執行指令。
+請在回覆中指出需要我確認的選項。
+</code></pre>
+<p>看過討論後，釘選你確認的需求與 API 規格，再送出明確的開發任務：</p>
+<pre><code class="language-text">@Codex 請依已確認方案實作 API，補上測試，完成後回報修改檔案、測試結果和待處理項目。
+</code></pre>
+<p>Codex 完成後，確認 Host 的自動整合訊息與測試結果，不能只看 Agent 文字說完成。安全整合後，Claude 下一次工作前會自動取得主專案更新，再請它串接。不需要你手動搬檔或建立 Worktree。正在執行中的成員不會被中途改動檔案；若其未完成修改會與同步衝突，App 會保留並提示。</p>
+<p>熟悉流程後，可透過「活動 → ＋新增任務與依賴」平行安排獨立工作。真正需要等 API 的任務要設定依賴。<strong>只有完成安全整合，主專案才包含產物；單純訊息／契約分享不會代替版本整合。</strong></p>
+<p>如果請成員彼此交換資訊，必須觀察實際任務／訊息及回覆；「已排程」只代表請求已送達排程器，不代表對方已完成工作。</p>
+<h2 id="9-讀取檔案-執行命令-聯網與批准">9. 讀取檔案、執行命令、聯網與批准</h2>
+<p>Agent 使用自己的真實原生工具，可在指派範圍讀寫檔案、執行允許的命令及網路工具。每家 Runtime 和模型實際提供的工具不同；開啟「活動」查看工具名稱、結果及錯誤。</p>
+<p>批准卡會顯示 Agent、工具、操作內容、目標路徑／指令及風險。可按「允許一次」或「拒絕」；只有支援時會出現「記憶本工作區讀取批准」。可在「設定 → 安全」撤銷記憶的讀取批准。Shell 不會因記住讀取權限而自動獲准。</p>
+<p>Antigravity 的 Headless 模式不能等互動式 CLI 批准。需要 Shell 時，先在「設定 → 代理 → 額外的確切指令」每行填入一個已審核的命令，例如 <code>npm test</code>；有需要的網域填主機名稱，例如 <code>example.com</code>，不填 <code>https://</code>、路徑或萬用字元。儲存後，每回合仍會顯示範圍並要求批准。未授權操作可能直接失敗，不會略過 Sandbox。</p>
+<p>Codex 原生搜尋依回合批准；Claude WebSearch／WebFetch 依工具批准；Antigravity 以它實際提供的原生搜尋／命令與網域規則為準。搜尋結果不等於已直接擷取該網頁。</p>
+<p>請只批准你理解的操作。Shell 和測試可執行專案程式；尤其 Claude 的工具路徑檢查不等於完整 Windows Shell 沙盒，不能假設任意已批准指令都無法碰到工作區外資料。</p>
+<h2 id="10-任務-等待-停止與重啟恢復">10. 任務、等待、停止與重啟恢復</h2>
+<p><strong>系統通知與工作列提醒（v0.11.0）</strong>：新批准、任務完成／失敗、整合待處理會通知，點擊後恢復視窗並開啟對應聊天室的活動面板。「設定 → 一般 → 系統通知」可選全部、只通知批准、勿擾；儲存後立即生效，並可按「測試通知」。勿擾仍顯示工作列待處理數；同一任務不重複計數，99 以上顯示 99+。查看聊天室會清除本次執行的未讀失敗，但不會解決批准或整合。重啟不補發舊通知，也不重跑工作。Windows 勿擾與通知權限仍可能抑制橫幅；建議從安裝版捷徑啟動，詳見 <a href="NOTIFICATIONS.md">通知說明</a>。App 最小化仍可通知，完全關閉則退出。</p>
+<p>在「活動」展開任務，可查看版本、模型／強度、依賴、結果和錯誤，也可暫停、取消、檢查後繼續或重新指派。</p>
+<table><thead><tr><th>狀況</th><th>建議處理</th></tr></thead><tbody><tr><td>等待批准</td><td>閱讀批准卡；其他聊天室的請求可從通知前往。</td></tr><tr><td>等待依賴／工作區</td><td>檢查上游和同一工作區是否仍在執行；不要重複送出相同工作。</td></tr><tr><td>依賴受阻</td><td>先處理失敗／取消的上游，再決定是否建立新嘗試。</td></tr><tr><td>暫停／取消／失敗</td><td>先檢查 Diff、部分檔案與命令結果；停止不等於回滾。</td></tr><tr><td>重啟後需人工檢查</td><td>確認工作區現況，再各自明確恢復需要繼續的任務。App 不會自動重播。</td></tr></tbody></table>
+<p>聊天區的停止會取消該聊天室工作並終止相關子程序；已寫入的檔案可能保留。新嘗試會保留舊 Task 紀錄，重新指派不會把前一位成員未提交的檔案直接搬到新工作區。</p>
+<p>如果 Agent 已完成，只是整合遇到問題，使用「重新嘗試整合（不重跑 Agent）」。App 重啟後也保留這個區分，不會重做開發副作用。先前 Worktree 未完成修改會保留；只是讀取它們的問答不會把它們自動提交／發佈。</p>
+<p>Resume 不會讓取消前的命令變成可安全重複執行。若命令有建立資源、遷移資料或其他副作用，先自行核對。外部 Runtime 的 Session 已刪除或不相容時，可能需建立新對話。</p>
+<h2 id="11-diff-檢查點與程式碼審查">11. Diff、檢查點與程式碼審查</h2>
+<p>自動管理會處理一般檢查點與測試整合。以下是需要進階檢查、手動模式或額外 Code Review 時的操作，不是每次開發的必要準備。</p>
+<ol>
+<li>到「變更」，選對成員工作區並重新整理 Diff。未追蹤檔案也要檢查內容，不能只看已追蹤 Diff。</li>
+<li>確認後按「建立檢查點」。它會把該工作區的變更建立 Git Commit；不是只儲存聊天，也不是已合併回主專案。先審核所有要提交的檔案。</li>
+<li>切到右側「審查」，選「來源工作區」與 Reviewer，按「請求 Review」。來源需乾淨且已提交。</li>
+<li>審查綁定確切 Commit 的唯讀快照。查看摘要、檔案／行號及評論；可請求修正，再建立新的檢查點並重新審查。</li>
+</ol>
+<p>「已處理」是評論標記，不會自動修復程式，也不等於測試已通過。唯讀 Review 不執行 Shell／測試；實際測試走下一章的快照流程。</p>
+<h2 id="12-測試-合併-同步與回滾">12. 測試、合併、同步與回滾</h2>
+<p>**預設的自動流程：**完成的 Agent 變更先做安全快照，在獨立整合快照通過測試並確認主專案沒有未處理修改／衝突後自動整合。npm 專案要有適用且有意義的 <code>npm test</code>；缺少測試時可直接要求 Agent 補測試，不必自己操作終端。純靜態 HTML/CSS 路徑執行明確標示的基本格式／檔案檢查，不能等同瀏覽器或功能測試。</p>
+<p>自動可執行測試使用 Codex 官方無模型 <code>command/exec</code> 沙盒，不消耗模型回合，不降級為未沙盒自動執行。沒有可用沙盒、私有 npm 設定／未審核依賴來源、Git filter 或其他無法安全判定的情況會停止提示；進階使用者可另行明確批准測試。安裝依賴只接受受檢查的公用 npm lockfile，並停用安裝腳本。</p>
+<p>若日誌顯示 <code>Error: spawn EPERM</code>，可能是本機官方 Windows 沙盒拒絕測試框架再啟動子程序。Node 24 測試可在確認適用時使用 <code>node --test --test-isolation=none</code>，仍受 OS 沙盒保護；App 不會替你修改既有測試或關閉沙盒。其他框架需依日誌處理，或明確批准進階手動測試。</p>
+<p>如果開啟「自動審查」，會先等待該確切版本 Review 通過，再使用整合重試。遇到主專案使用者修改，可先在進階面板「檢視主專案變更」，確認後「保存主專案安全快照」，再重試整合。原暫存版本若仍不同，會保留並停止，不清除你的資料。</p>
+<p>以下步驟用於關閉自動管理，或需要進階手動處理的情況。</p>
+<p><strong>把成員變更合併回主專案：</strong></p>
+<ol>
+<li>確認來源已建立檢查點，主專案狀態符合乾淨／版本檢查，且沒有正在改動工作區的任務。</li>
+<li>在「變更」選來源成員，按「合併預覽」。</li>
+<li>檢查產生的整合後 Diff 與版本。發生衝突時先處理，不會強制覆蓋。</li>
+<li>需要依賴時，在<strong>該合併預覽</strong>展開「依賴安裝與其他測試工具」，選適用入口並批准執行。npm 安裝使用已提交的 lockfile，以 <code>npm ci --ignore-scripts</code> 停用安裝腳本；需要安裝腳本的專案須另行審核處理。</li>
+<li>按「測試此合併快照」，或使用該快照的其他測試入口。確認結果、紀錄與版本。</li>
+<li>該整合快照通過測試後，才按「批准並合併」。來源／目標／快照如果變動，要重新預覽與測試。</li>
+</ol>
+<p>只有 Agent 說「測試通過」、另一個 Worktree 通過測試，或舊版本測試成功，都不能代替這個整合快照的測試。專案需有實際適用的測試入口；沒有測試時，先建立測試，不能直接跳過合併 gate。</p>
+<p>**讓其他成員取得已整合的內容：**選它的工作區，按「同步主專案預覽」，同樣檢查、測試該快照並批准。Worktree 不會自動跟隨主專案。</p>
+<p>**撤回變更：**目前提供「回滾最新 Commit 預覽」與「回滾主專案最新 Commit 預覽」，走新的 Revert Commit、快照測試與批准流程。這不是任意檔案復原，也不會用 Hard Reset 刪除歷史。不要把「清理暫存快照」當回滾功能。</p>
+<h2 id="13-共享契約-背景與已知差異">13. 共享契約、背景與已知差異</h2>
+<p>釘選已確認的需求、API 格式和重要決策，可幫助後續回合取得關鍵背景。目前最多 12 則釘選；總背景有字元預算，過長內容可能只送節錄。到「活動 → Agent 背景與來源」查看準備的文字、來源和截短資訊。</p>
+<p>「契約」面板可查看 Agent 透過結構化操作發布、綁定已提交版本的產物。發布契約不會替其他 Worktree 寫檔或合併。</p>
+<p>審查必須透過 <code>submit_review</code> 提交結論，並等待審查回合成功完成。提交後仍顯示「正在確認審查回合完成」時，還不能作為有效批准；沒有結構化結論或 Runtime 失敗會明確標示失敗。明確重試會關聯新的任務嘗試，保留舊失敗紀錄。</p>
+<p>啟用自動 Review 時，請選擇已啟用的團隊審查者。自動整合僅接受該審查者對確切版本的最新成功批准；後續退件、失敗或尚未完成的重審會阻擋整合。審查者與開發者相同時，仍會在獨立唯讀 Session 審查，不會跳過。</p>
+<p>目前的重要差異：Codex／Claude 可直接取得 Host 的歷史搜尋／來源讀取結果；Antigravity 可在同一原生 Session 的下一回合收到 <code>search_context</code>、<code>read_context</code>、<code>read_artifact</code> 結果。最多三次續接，額外回合會使用帳號額度並計入全隊回合／用量預算；原生權限不變。中間讀取訊息不公開，只發佈最後答案。活動可查看讀取操作與回合，任務詳情可看原生回合數；Stop 也會停止續接。這不是直接注入 MCP 的同回合工具回傳。</p>
+<p>Antigravity 目前也不是逐 Token 顯示回覆：需要等最終結構驗證後才顯示公開答案。沒有逐字出現不必然代表沒工作，請看活動、批准及錯誤。</p>
+<h2 id="14-剩餘額度與本機預算">14. 剩餘額度與本機預算</h2>
+<p>點輸入框上方「剩餘額度」，可看各時段剩餘比例、重置時間、最後更新時間與來源。前景每 45 秒刷新，聚焦和任務結束時補查，也可手動重新整理；Main 有快取與頻率限制，不是逐 Token 結算。</p>
+<table><thead><tr><th>顯示</th><th>如何理解</th></tr></thead><tbody><tr><td>Codex／Claude 本機訂閱時段</td><td>官方 Runtime 回傳的帳號剩餘比例；每個時段獨立，不能相加。</td></tr><tr><td>Claude API-key 模式</td><td>API 帳務與訂閱分開，目前不顯示 API 剩餘餘額。</td></tr><tr><td>Antigravity 額度為「—」</td><td>Headless 查詢尚無可驗證介面，不代表 0；請在官方互動 CLI 用 <code>/usage</code>／<code>/quota</code>、<code>/credits</code>。</td></tr><tr><td>過期／更新失敗</td><td>顯示上次成功值並標示過期，不保證目前仍有這些額度。</td></tr><tr><td>活動中的 Token／估計 USD</td><td>Runtime 已回報的用量，不是帳號剩餘額度，也不保證等於實際帳單。</td></tr></tbody></table>
+<p>「設定 → 協作」的本機 Token／費用預算只是 AgentHub 的排程保護。供應商回報可能延遲，不能當成即時硬性扣款上限。重置時間到了也不能自行認定已恢復使用權，應等待供應商更新。</p>
+<h2 id="15-匯出-備份與還原">15. 匯出、備份與還原</h2>
+<p><strong>匯出聊天：</strong>「活動」抽屜內有「匯出 Markdown」及 JSON 匯出。匯出是閱讀／攜出紀錄，不是供應商原生 Session 備份；目前沒有保證能把 JSON 匯出重新匯入成可恢復 Session 的操作。含圖片的匯出會帶原檔，總圖片超過 32 MiB 請改用 SQLite 備份。</p>
+<p>**備份：**開「設定 → 資料」，按「建立 SQLite 備份」，選擇位置並確認成功提示。這裡也可「開啟使用手冊」。實際資料庫及安全診斷日誌位置會顯示，不要假設所有安裝都用相同路徑。</p>
+<p>**還原：**先停止工作、保存專案，按「預覽還原 SQLite 備份」，檢查內容／Schema，再「批准還原」，依提示關閉並重開 App 套用。App 會保留還原前備份；不要在執行中手動覆蓋 SQLite 檔案。</p>
+<p>SQLite 備份不包含專案原始碼／Worktree、測試沙盒暫存、各家原生 Session 檔案，也不包含 DPAPI 金鑰。要完整保留工作，另外保存 Git Repository／工作區；跨機器恢復供應商 Session 不保證成功。v0.10.0 沿用 Schema 7，可載入 v0.7.0 資料。舊版不支援新續接流程，不要在工作尚未停止時降版；更早版本的 Schema 限制依原遷移規則。</p>
+<p>移除專案捷徑不會刪除專案原始碼，但會移除相關本機專案／歷史紀錄，請先備份。解除安裝預設保留聊天資料與使用者專案。</p>
+<h2 id="16-常見問題與第一步排查">16. 常見問題與第一步排查</h2>
+<table><thead><tr><th>問題</th><th>先檢查什麼</th></tr></thead><tbody><tr><td>使用者訊息有出現，Agent 沒回覆</td><td>有無選接收者、成員是否啟用且在團隊內、工作區是否建立、是否等待批准、活動是否有失敗。</td></tr><tr><td><code>[WORKSPACE_NOT_READY]</code></td><td>確認未關閉自動管理；預設不需要手動建立。若刻意使用手動模式，才依進階流程準備。</td></tr><tr><td>CLI 在終端可用，App 偵測不到</td><td>完全關閉再開 App 以取得 PATH；確認是官方原生 CLI 安裝，再看設定的日誌位置。Codex npm 安裝由 App 解析到原生 exe，不要把 <code>.cmd</code> 指令填進模型欄。</td></tr><tr><td>Claude 要求 API Key</td><td>檢查是否誤選 SDK/API 模式。用既有訂閱應選本機官方 CLI，儲存後偵測；切換認證模式請建立新對話。</td></tr><tr><td>模型清單沒有想要的型號</td><td>按重新偵測，核對帳號／CLI 支援。沒有清單時才手動輸入合法 ID；App 不會自動解鎖帳號無權使用的模型。</td></tr><tr><td>Antigravity 權限被拒</td><td>檢查系統／Sandbox、確切命令和網域清單，再明確批准新回合；不關掉全部權限繞過問題。</td></tr><tr><td>Antigravity <code>IMAGE_NOT_READ</code></td><td>未確認所有圖片被原生工具成功開啟；看活動中的讀圖工具／路徑與模型能力，再決定重試。</td></tr><tr><td>Agent 回覆完成但主資料夾沒變</td><td>查看 Host 整合結果是否為 attention；常見原因是使用者修改、測試缺少／失敗、待 Review 或衝突。先處理並重試整合，不要重跑 Agent。</td></tr><tr><td>合併按鈕不能用</td><td>該整合快照是否有適用測試通過？是否有任務執行、衝突、未提交檔案或來源版本變動？</td></tr><tr><td>重開後沒有繼續執行</td><td>這是防止副作用重播的保護，先檢查 Diff，再逐項明確恢復。</td></tr></tbody></table>
+<p>回報問題時附上 App／CLI 版本、可重現步驟、任務錯誤及遮蔽敏感內容的診斷。不要提交 API Key、Token、密碼、私人專案內容或未審核的完整聊天資料庫。</p>
+<h2 id="17-完成一次工作的檢查清單">17. 完成一次工作的檢查清單</h2>
+<ul>
+<li>確認使用的是預期的團隊、接收者、模型及強度。</li>
+<li>檢查實際 Task 結果與工具錯誤，區分「已排程」和「已完成」。</li>
+<li>確認 Host 是否已安全整合到主要資料夾；有 attention 時才進入進階 Diff／快照處理。</li>
+<li>需要時請另一成員 Review，修正後重新審查。</li>
+<li>在整合後的確切快照執行適用測試，確認結果與版本。</li>
+<li>自動模式確認整合成功與來源版本；手動模式才自行批准合併與同步。</li>
+<li>保存 Git／工作區及 SQLite 備份。</li>
+</ul>
+<h3>Windows 程序診斷與異常關閉</h3>
+<p>「設定 → 診斷 → 重新整理程序」可查看 Main、守護程序、各 Task 的執行檔與 PID／階段。這是即時快照，不是常駐終端；不顯示命令參數或憑證。Windows Job Object 負責退出時回收受管子孫程序，各家原生沙盒與權限仍保持原有設定。</p>
+<p>App／Renderer 異常後重新開啟，先確認工作區與 Diff，再明確恢復需要繼續的任務；部分檔案保留，不會自動重播。若提示 Windows process guard missing，請重新安裝完整版本，確認安全軟體未隔離 resources/native/agenthub-process-guard.exe；不要自行替換為不明檔案。Windows 需要系統 .NET Framework 4.x。完整行為與限制見 <a href="PROCESS_LIFECYCLE.md">程序生命週期</a>。</p>
+<h2 id="18-工作流程範本">18. 工作流程範本</h2>
+<p>聊天室上方「流程」定義「怎麼做」，「團隊」定義「誰」。內建 Codex 實作 → Claude 審查 → 有界回修 → 測試整合，以及 AGY 發布契約 → Codex／Claude 平行實作 → 交叉審查。選範本、把角色綁定到啟用的成員、填需求即可開始；原有模型與權限設定保留。</p>
+<p>「新增範本」或「另存副本」可設定角色、步驟類型、先決條件、產物交接、來源與回修次數。上下排序只是顯示順序，執行由依賴決定；先儲存再套用。執行中的流程使用範本副本，不受後續編輯／刪除影響。</p>
+<p>契約必須真的 <code>publish_artifact</code> 對應完成的 Commit，審查必須以 <code>submit_review</code> 提交結果並成功結束。沒有批准不整合，測試綁定確切快照；失敗、超過回修上限及重啟會停下，從流程面板檢查後繼續或取消。聊天室「Stop」也會暫停流程。自動管理工作區為必要條件，同一專案的其他派工／手動整合須先結束或取消流程。詳見 <a href="WORKFLOW_TEMPLATES.md">完整範本說明</a>。</p>
+<p>Schema 8 包含範本與流程紀錄，請升級前備份；舊版 App 不可直接開啟新資料庫。</p>
+<h2 id="19-後續閱讀與開發狀態">19. 後續閱讀與開發狀態</h2>
+<p><a href="RELEASE_READINESS.md">距離正式版尚缺什麼</a>區分功能缺口、待補驗收和進階選項；<a href="IMPLEMENTATION_STATUS.md">實作狀態</a>保留各階段紀錄；<a href="TROUBLESHOOTING.md">問題排除</a>、<a href="CAPABILITIES.md">原生能力</a>、<a href="MODELS_AND_CONTEXT.md">模型與背景</a>、<a href="QUOTAS.md">額度</a>、<a href="VALIDATION.md">驗收紀錄</a>提供更多細節。舊階段的測試數量或路徑以各版本對應紀錄及本手冊為準。</p></main></body></html>

@@ -1,0 +1,139 @@
+{
+  "name": "agenthub",
+  "version": "0.12.0",
+  "private": true,
+  "description": "Local-first multi-agent collaborative coding workspace",
+  "author": "AgentHub contributors",
+  "license": "MIT",
+  "main": "dist/main/index.js",
+  "type": "module",
+  "overrides": {
+    "katex": "$katex"
+  },
+  "scripts": {
+    "build:native": "tsx scripts/build-process-guard.ts",
+    "predev": "npm run build:native",
+    "pretest": "npm run build:native",
+    "dev": "electron-vite dev",
+    "build": "npm run build:native && tsx scripts/build-user-guide.ts && electron-vite build",
+    "start": "electron .",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:e2e": "npm run build && playwright test",
+    "test:live": "tsx scripts/live.ts",
+    "test:packaged-codex": "tsx scripts/packaged-codex-chat.ts",
+    "test:packaged-team": "tsx scripts/packaged-team-chat.ts",
+    "test:live-collaboration": "tsx scripts/live-collaboration.ts",
+    "test:live-coding": "tsx scripts/live-coding.ts",
+    "test:claude-native": "tsx scripts/live-native-claude.ts",
+    "test:live-images": "tsx scripts/live-images.ts",
+    "test:live-web": "tsx scripts/live-web.ts",
+    "test:live-recovery": "tsx scripts/live-recovery.ts",
+    "test:live-models-context": "tsx scripts/live-models-context.ts",
+    "test:live-quota": "tsx scripts/live-quota.ts",
+    "test:live-automatic": "tsx scripts/live-automatic.ts",
+    "test:live-agy-host": "tsx scripts/live-agy-host.ts",
+    "test:live-lifecycle": "tsx scripts/live-lifecycle.ts",
+    "test:live-notifications": "tsx scripts/live-notifications.ts",
+    "test:release-coding": "tsx scripts/live-release-coding.ts",
+    "test:installed-upgrade": "tsx scripts/live-installed-upgrade.ts",
+    "benchmark:context": "tsx scripts/benchmark-context.ts",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "package:win": "npm run build && electron-builder --win nsis portable --x64",
+    "package:dir": "npm run build && electron-builder --win dir --x64",
+    "protocol:codex": "codex app-server generate-ts --experimental --out .protocol/codex"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.314",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@radix-ui/react-slot": "1.5.0",
+    "@tanstack/react-virtual": "3.14.24",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "image-size": "2.0.4",
+    "katex": "0.19.1",
+    "lucide-react": "1.65.0",
+    "mermaid": "12.2.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-markdown": "10.1.0",
+    "rehype-highlight": "7.0.2",
+    "rehype-katex": "7.0.1",
+    "remark-gfm": "4.0.1",
+    "remark-math": "6.0.0",
+    "sharp": "0.35.5",
+    "tailwind-merge": "3.7.0",
+    "zod": "4.6.7",
+    "zustand": "5.0.16"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@playwright/test": "1.64.1",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "electron": "45.1.0",
+    "electron-builder": "26.18.0",
+    "electron-vite": "6.0.0",
+    "eslint": "9.39.5",
+    "prettier": "3.9.10",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
+  },
+  "build": {
+    "appId": "org.agenthub.desktop",
+    "productName": "AgentHub",
+    "directories": {
+      "output": "release/${version}"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".native/agenthub-process-guard.exe",
+        "to": "native/agenthub-process-guard.exe"
+      },
+      {
+        "from": "docs",
+        "to": "docs",
+        "filter": [
+          "*.md",
+          "USER_GUIDE.html"
+        ]
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/@anthropic-ai/claude-agent-sdk*/**/*",
+      "node_modules/@img/**/*",
+      "node_modules/sharp/**/*"
+    ],
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "signExecutable": false
+    },
+    "portable": {
+      "artifactName": "AgentHub-${version}-portable.exe",
+      "useZip": true
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "version": "0.1.1",
+  "generatedAt": "2026-10-30T19:12:49.655Z",
+  "platform": "win32-x64",
+  "signed": false,
+  "tests": {
+    "unit": 25,
+    "electronE2E": 2,
+    "packagedRealCodex": "passed"
+  },
+  "live": {
+    "answer": "OK",
+    "packaged": true,
+    "npmOnlyPath": true,
+    "profile": ".local\\codex-debug\\fixed-profile-abBQAO",
+    "log": ".local\\codex-debug\\fixed-profile-abBQAO\\logs\\diagnostics.jsonl",
+    "taskId": "25880d65-22a4-43b9-8903-d52f0eb5652d",
+    "rpcStages": [
+      "initialize",
+      "thread/start",
+      "turn/start",
+      "item/agentMessage/delta",
+      "turn/completed"
+    ]
+  },
+  "milestones": [
+    {
+      "event": "task.failed",
+      "errorCode": "WORKSPACE_NOT_READY",
+      "taskId": "2af9ca15-e7e0-4125-9b55-32a3dfa565a3"
+    },
+    {
+      "event": "rpc.response",
+      "method": "initialize",
+      "status": "ok",
+      "taskId": "25880d65-22a4-43b9-8903-d52f0eb5652d"
+    },
+    {
+      "event": "rpc.response",
+      "method": "thread/start",
+      "status": "ok",
+      "taskId": "25880d65-22a4-43b9-8903-d52f0eb5652d"
+    },
+    {
+      "event": "rpc.response",
+      "method": "turn/start",
+      "status": "ok",
+      "taskId": "25880d65-22a4-43b9-8903-d52f0eb5652d"
+    },
+    {
+      "event": "task.completed",
+      "taskId": "25880d65-22a4-43b9-8903-d52f0eb5652d"
+    },
+    {
+      "event": "process.exit",
+      "status": "host-stopped",
+      "exitCode": 1,
+      "taskId": "25880d65-22a4-43b9-8903-d52f0eb5652d"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "release/0.1.1/AgentHub Setup 0.1.1.exe",
+      "bytes": 267483553,
+      "sha256": "6b05d8efaff2603d41fec25b8151c1f3181bccd794617cc05034db5a859c3952"
+    },
+    {
+      "path": "release/0.1.1/win-unpacked/AgentHub.exe",
+      "bytes": 249798656,
+      "sha256": "bec860e121f59957f7f579d0a55452d1c19151f1229b9364096a792705349bde"
+    },
+    {
+      "path": "dist/main/index.js",
+      "bytes": 79742,
+      "sha256": "85892b625f68026fb4285c416c5208e534c814964ca2ff22b0d97f1f6c1e95c4"
+    },
+    {
+      "path": "dist/preload/index.cjs",
+      "bytes": 547,
+      "sha256": "3a20c28845163541674771eece507695956ea68b6cf176d05548d8cd315a7b4d"
+    }
+  ]
+}

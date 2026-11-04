@@ -1,0 +1,14 @@
+node_modules/
+dist/
+release/
+.protocol/
+test-results/
+playwright-report/
+.local/
+.native/
+*.log
+*.sqlite*
+.env*
+.DS_Store
+Thumbs.db
+Desktop.ini

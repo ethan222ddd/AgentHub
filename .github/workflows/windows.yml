@@ -1,0 +1,35 @@
+name: Windows checks and installer
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  desktop:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm exec -- install-electron --no
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run package:win
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - run: npx playwright test
+      - uses: actions/upload-artifact@v7
+        with:
+          name: AgentHub-Windows-x64
+          path: release/*/AgentHub Setup *.exe
+          if-no-files-found: error
+          retention-days: 7
+      # Native paid-account tests are deliberately opt-in local commands, never CI secrets.
