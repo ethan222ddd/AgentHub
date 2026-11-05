@@ -42,6 +42,12 @@ Windows workflow 由 push、PR 或 workflow_dispatch 觸發，執行鎖定依賴
 
 只給 `contents: read`；checkout 不持久化認證。打包指令明確使用 `--publish never`，避免 electron-builder 在 CI 中因偵測到 GitHub Repository 而自動發佈 Release、要求不必要的發佈 Token。相同分支新提交取消過期建置。成功產物保留七天，失敗會保留測試診斷；沒有把本機帳號、API Key 或訂閱憑證加入 CI。付費三家 Live 仍是另外明確執行的本機指令。
 
-本次本機範圍：Typecheck、ESLint、Build、5 個相關測試檔 34 項，以及 Electron 7 項通過／1 項因未先本機打包而略過。遠端 CI 會完整執行免付費 suite 並在打包後執行該案例；最終是否成功以 Actions 的實際 run 與 SHA 為準，不能拿本機結果當成遠端成功。
+本次本機範圍：Typecheck、ESLint、Build、5 個相關測試檔 34 項，以及 Electron 7 項通過／1 項因未先本機打包而略過。CI 問題修正另跑附件／額度 14 項與完整退件回修流程 1 項，沒有重跑付費 Live。
+
+遠端 [run 41943842088](https://github.com/ethan222ddd/AgentHub/actions/runs/41943842088) 已成功，程式碼 SHA `07da02579301a2e045daf75bca8df1ffd240ca0c`：Typecheck、ESLint、追蹤檢查、27 個測試檔／161 項免付費測試、NSIS／Portable 建置、11 項 Electron E2E 全部通過；其中包括真正打包 EXE 的啟動與安全 Preload 檢查，沒有略過該案例。它是離線回歸驗收，不代表重新完成三家帳號 Live 驗收。
+
+下載 [Windows x64](https://github.com/ethan222ddd/AgentHub/actions/runs/41943842088/artifacts/13377538391) 或 [JSON 測試報告](https://github.com/ethan222ddd/AgentHub/actions/runs/41943842088/artifacts/13377294132)，保留至 2026-11-12。文件記錄採後續獨立提交；產品程式碼與打包腳本以上述已驗證 SHA 為準。
+
+CI 曾暴露三個測試問題：以新版資料庫拆表冒充舊 Schema、額度比對誤中時間戳、共享 Windows runner 上流程案例期限不足。現在使用固定的 `tests/fixtures/schema-3.sql`、明確欄位驗證及僅限測試的較長期限，保留原有斷言與產品限制。另已修正 electron-builder 在 CI 偵測遠端後自動嘗試發佈的設定；沒有以新增發佈憑證繞過失敗。
 
 官方 Action 版本核對：[checkout](https://github.com/actions/checkout/releases/latest)、[setup-node](https://github.com/actions/setup-node/releases/latest)、[upload-artifact](https://github.com/actions/upload-artifact/releases/latest)。

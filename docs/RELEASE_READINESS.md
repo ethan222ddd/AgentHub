@@ -1,6 +1,8 @@
-# AgentHub v0.10.0 距離正式版的缺口
+# AgentHub v0.12.1 距離正式版的缺口
 
-核對日期：2026-11-04（Asia/Taipei）。本文件依目前程式與 BUILD_MANIFEST 整理，不以版本號或任意完成百分比代替驗收。
+核對日期：2026-11-05（Asia/Taipei）。本文件依目前程式、歷史 BUILD_MANIFEST 與 v0.12.1 Windows CI 整理，不以版本號或任意完成百分比代替驗收。
+
+v0.11 通知及 v0.12 工作流程範本已加入，操作與限制見 NOTIFICATIONS／WORKFLOW_TEMPLATES。v0.12.1 建立公開 Git 原始碼、模組拆分及真實 Windows CI；[本輪 CI](https://github.com/ethan222ddd/AgentHub/actions/runs/41943842088) 的 161 項離線測試、11 項 Electron E2E 與 NSIS／Portable 建置通過。本輪沒有重跑付費 Live；以下原生 Runtime 實測仍標示其歷史版本，不以工程維護測試冒充新的三家 Live 證據。
 
 ## 現在已能做什麼
 
@@ -36,7 +38,7 @@ v0.7.0 歷史紀錄為 94 tests／7 Electron E2E 與自動開發／整合。v0.9
 
 ## 正式發佈準備
 
-目前有未簽章的本機安裝檔、MIT 原始碼壓縮檔及 Windows CI workflow；尚未公開 GitHub 發佈，也未遠端實際執行 CI。需要完成發佈流程、相容性說明、最終驗收與問題回報管道。程式碼簽章需要合法發行者憑證；自動更新尚未實作，兩者都不是現有功能。
+目前已有 [公開 GitHub 原始碼](https://github.com/ethan222ddd/AgentHub)、MIT 授權及實際成功的 Windows CI；安裝版／Portable 透過保留七天的 Actions Artifact 提供。尚未建立正式 GitHub Release、簽章與自動更新；仍需完成正式發佈流程、相容性矩陣和最終驗收。程式碼簽章需要合法發行者憑證。
 
 本次已新增繁中使用手冊與離線 HTML 閱讀版，補上先前只有 README 和分散技術文件的缺口。
 

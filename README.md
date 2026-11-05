@@ -6,6 +6,8 @@
 
 **v0.12.1：工程維護。** 建立 Git 基準與原始碼追蹤，拆分排程／回合／協作／批准／審查、聊天室、設定、活動面板、範本頁與 CSS。沿用原有功能與權限政策；生成檔和本機維護資料保持忽略追蹤。
 
+[Windows CI 已通過](https://github.com/ethan222ddd/AgentHub/actions/runs/41943842088)：27 個測試檔／161 項離線測試、11 項 Electron E2E（含打包版啟動）、NSIS 與 Portable 建置成功。驗證程式碼為 `07da02579301a2e045daf75bca8df1ffd240ca0c`；本輪未重跑付費 Live。
+
 首次使用請讀 [繁體中文使用手冊](docs/USER_GUIDE.zh-TW.md)／[離線 HTML 手冊](docs/USER_GUIDE.html)。目前距離正式版尚缺的功能與驗收見 [發佈準備清單](docs/RELEASE_READINESS.md)。
 
 **v0.12.0：可自訂工作流程範本。** 聊天室「流程」可選擇、增加、修改、複製與刪除範本，設定角色、先決步驟、不可變產物交接、審查與有界回修。內建「Codex 實作 → Claude 審查」及「AGY 契約 → 平行實作 → 交叉審查」，通過既有指定版本審查、測試與安全 gate 才整合。詳見 [流程使用手冊](docs/WORKFLOW_TEMPLATES.md)。本次只驗證相關流程，不重跑付費代理全套。
@@ -20,7 +22,9 @@
 
 聊天室已加入[剩餘額度](docs/QUOTAS.md)：Codex／Claude 原生訂閱額度、重置時間及前景自動更新；AGY headless 目前無可驗證的額度查詢，明確提示使用官方 `/usage`，不顯示推算值。
 
-安裝程式：`release/0.12.1/AgentHub Setup 0.12.1.exe`。免安裝版：`release/0.12.1/AgentHub-0.12.1-portable.exe`。
+下載 [v0.12.1 Windows x64 安裝包](https://github.com/ethan222ddd/AgentHub/actions/runs/41943842088/artifacts/13377538391)（GitHub Actions Artifact，可能需要登入 GitHub，保留至 2026-11-12；不是正式 GitHub Release）。解壓後選擇 `AgentHub Setup 0.12.1.exe` 或 `AgentHub-0.12.1-portable.exe`。
+
+自行打包的安裝程式位於 `release/0.12.1/AgentHub Setup 0.12.1.exe`，免安裝版位於 `release/0.12.1/AgentHub-0.12.1-portable.exe`；CI 產物不會自動下載到本機。
 
 平常使用安裝版或 Portable。開發用解壓版可執行 `npm run package:dir` 重新建立，再開啟 `release/0.12.1/win-unpacked/AgentHub.exe`。Portable 預設資料在執行檔旁 `AgentHubData`，安裝版使用 Electron 使用者資料目錄；實際位置在設定顯示。安裝包尚未簽章。卸載不刪除聊天資料與使用者專案。使用 Schema 8，可遷移讀取舊資料，舊版 App 不可開啟新版資料庫；升級前先備份。Portable 採 electron-builder 官方 ZIP payload；體積包含 Electron 與執行所需元件。
 

@@ -8,7 +8,11 @@
 
 新增 Repository 外、正規化路徑的測試 TEMP 及清理，避免測試空資料夾繼承本專案 Git。保持產品拒絕巢狀 Repository／重新導向路徑的政策。修正 CI 的 Electron 安裝指令，加入原始碼追蹤檢查、分支建置去重、Portable 上傳及失敗診斷。
 
-本機 Typecheck／ESLint／Build、34 項相關測試及 7 項 Electron E2E 通過；另 1 項本機未先打包的案例略過，由遠端打包後執行。遠端 CI 結果以 Actions 真實 run／SHA 為準，未把本機通過當成遠端已成功。沒有重跑付費 Live。
+原始碼已推送至 [GitHub](https://github.com/ethan222ddd/AgentHub)。本機 Typecheck／ESLint／Build、34 項相關測試及 7 項 Electron E2E 通過；另 1 項本機未先打包的案例略過，已由遠端打包後實際執行。
+
+Windows [CI run 41943842088](https://github.com/ethan222ddd/AgentHub/actions/runs/41943842088) 全部成功，驗證程式碼 SHA `07da02579301a2e045daf75bca8df1ffd240ca0c`：27 個測試檔／161 項離線測試、11 項 Electron E2E（含打包 EXE）、Typecheck、ESLint、原始碼追蹤檢查與兩種 Windows 打包均通過。提供 [NSIS／Portable Artifact](https://github.com/ethan222ddd/AgentHub/actions/runs/41943842088/artifacts/13377538391) 及 [JSON 報告](https://github.com/ethan222ddd/AgentHub/actions/runs/41943842088/artifacts/13377294132)，保留至 2026-11-12；沒有重跑付費 Live。
+
+根據前兩次 CI 實際失敗修正歷史 Schema 測試、額度欄位比對及 Windows 流程測試期限；相關本機 14＋1 項通過。打包明確使用 `--publish never`，排除無意自動發佈 Release 而要求 Token 的失敗，CI 維持唯讀權限。未放寬產品權限或改成跳過失敗案例。清理本輪 12 個生成測試 Profile，釋放約 127 MB；小型維護證據保存在忽略追蹤的 `.local/maintenance-evidence-v0.12.1.zip`。
 
 以下保留 v0.12.0 歷史紀錄。
 
