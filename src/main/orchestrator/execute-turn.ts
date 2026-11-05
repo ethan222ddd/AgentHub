@@ -72,6 +72,7 @@ export interface TurnHost {
   collaborate(task: Task, input: CollaborationInput, signal: AbortSignal): Promise<unknown>
   integrationMessage(task: Task, integration: NonNullable<Task['integration']>): void
   autoFix(task: Task, detail: string, kind?: 'integration' | 'failure'): void
+  dispatchTeam(task: Task): void
   requestReview(
     workspaceId: string,
     conversationId: string,
@@ -427,6 +428,7 @@ export async function executeTurn(
     // Autonomous rooms send a failed integration straight back to the agent that owns it.
     if (integration?.status === 'attention' && host.store.settings().autonomy === 'auto')
       host.autoFix(host.store.require<Task>('tasks', task.id), integration.detail)
+    else if (task.team) host.dispatchTeam(host.store.require<Task>('tasks', task.id))
     if (
       !task.reviewId &&
       !task.workflow &&

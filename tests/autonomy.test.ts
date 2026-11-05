@@ -133,11 +133,23 @@ describe('autonomous team run', () => {
         agentId: 'codex',
         team: { lead: 'codex', members: ['codex', 'claude', 'antigravity'] },
       })
+      // The lead assigned only Claude; the host assigns the QA role after the implementation.
       await until(
-        () => store.list<Task>('tasks').filter((t) => t.status === 'completed').length === 2,
+        () => store.list<Task>('tasks').filter((t) => t.status === 'completed').length === 3,
         15000,
       )
-      expect(adapter.order).toEqual(['codex', 'claude'])
+      expect(adapter.order).toEqual(['codex', 'claude', 'antigravity'])
+      const tasks = store.list<Task>('tasks')
+      const lead = tasks.find((t) => t.agentId === 'codex')!
+      const ui = tasks.find((t) => t.agentId === 'claude')!
+      expect(tasks.find((t) => t.agentId === 'antigravity')!.dependencies).toEqual([lead.id, ui.id])
+      expect(adapter.prompts.get('antigravity')).toContain('YOUR ROLE: QA Engineer')
+      expect(adapter.prompts.get('antigravity')).toContain('Build a to-do app')
+      expect(
+        store
+          .list<Message>('messages')
+          .some((m) => m.content.includes('AgentHub 已依角色自動分派')),
+      ).toBe(true)
       expect(adapter.prompts.get('codex')).toContain('- antigravity (Antigravity)')
       expect(adapter.prompts.get('codex')).toContain('AUTONOMOUS ROOM')
       expect(adapter.prompts.get('claude')).not.toContain('TEAM LEAD PROTOCOL')
@@ -252,7 +264,10 @@ describe('autonomous limits and Antigravity output recovery', () => {
       '```json\n{"message":"done","requests":[{"operation":"report_progress","recipients":[],"content":"ok"}]}\n```'
     expect(envelopeFromText(fenced).requests).toHaveLength(1)
     expect(envelopeFromText(fenced).message).toBe('done')
-    expect(envelopeFromText('All tests pass.')).toEqual({ message: 'All tests pass.', requests: [] })
+    expect(envelopeFromText('All tests pass.')).toEqual({
+      message: 'All tests pass.',
+      requests: [],
+    })
     expect(envelopeFromText('{not json')).toEqual({ message: '{not json', requests: [] })
   })
 })

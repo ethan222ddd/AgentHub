@@ -91,7 +91,7 @@ function leadProtocol(store: Store, task: Task): string {
       '2. Record the contract with propose_decision, and report_progress it to every teammate.',
       `3. Implement the foundation that others build on (project scaffold, package.json with every dependency the team needs including test tooling, lockfile, shared types/state) in this turn yourself. Install dependencies and make the build and test commands runnable.`,
       `4. Before ending the turn, assign_task each teammate's part (one call per teammate, recipients [id]) with the contract, the exact files they own, and acceptance criteria. Put your own Task ID (${task.id}) in dependencies so they start from your integrated foundation. Give the tester/reviewer role a task whose dependencies are the task IDs returned for the implementation tasks, asking them to write and run tests, review the code, and assign_task fixes to the owning agent when something fails.`,
-      "5. Do not do your teammates' parts. Finish with submit_handoff.",
+      "5. Do not do your teammates' parts. Delegation only happens through assign_task calls, never by writing it under handoff next steps. Finish with submit_handoff.",
     ].join('\n')
   )
 }

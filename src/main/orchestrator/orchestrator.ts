@@ -24,6 +24,7 @@ import { ApprovalQueue } from './approvals'
 import { maxDepth } from './autonomy'
 import { deliverCollaboration } from './collaboration'
 import { executeTurn } from './execute-turn'
+import { formatHandoff } from './guidance'
 import { createReview, requestReviewFix, type ReviewHost, type WorkflowReview } from './reviews'
 
 const planFirstFields = (): Pick<Task, 'planFirst' | 'plan'> => ({
@@ -330,6 +331,7 @@ export class Orchestrator {
         collaborate: (...args) => this.collaborate(...args),
         integrationMessage: (...args) => this.integrationMessage(...args),
         autoFix: (...args) => this.autoFix(...args),
+        dispatchTeam: (t) => this.dispatchTeam(t),
         requestReview: (...args) => this.requestReview(...args),
       },
       task,
@@ -765,6 +767,80 @@ export class Orchestrator {
     } catch (error) {
       notice(`無法自動建立修正任務：${String(error)}\nCould not start an automatic fix.`)
     }
+  }
+  /**
+   * The team lead finished its foundation. Any member it did not assign (models sometimes
+   * write "assign X" as a next step instead of calling assign_task) gets their role's part from
+   * the host, so one prompt always reaches every agent. Testers wait for the implementers.
+   */
+  dispatchTeam(task: Task): void {
+    const team = task.team
+    if (!team || team.lead !== task.agentId) return
+    const c = this.store.require<Conversation>('conversations', task.conversationId)
+    if (c.stopped) return
+    const related = this.store
+      .list<Task>('tasks')
+      .filter((t) => t.correlationId === task.correlationId && t.agentId !== team.lead)
+    const assigned = new Set(related.map((t) => t.agentId))
+    const agents = this.store.list<AgentProfile>('agents')
+    const missing = team.members
+      .filter((id) => id !== team.lead && !assigned.has(id))
+      .map((id) => agents.find((a) => a.id === id))
+      .filter((a): a is AgentProfile => !!a?.enabled)
+    if (!missing.length) return
+    const isTester = (a: AgentProfile) =>
+      /test|qa|review|測試|審查|驗證/i.test(`${a.role} ${a.name}`)
+    const request =
+      this.store.get<Message>('messages', task.correlationId)?.content || task.description
+    const handoff = task.handoff ? formatHandoff(task.handoff).slice(0, 4000) : task.result || ''
+    const describe = (a: AgentProfile, tester: boolean) =>
+      `Team task from AgentHub: the lead ${team.lead} finished the shared foundation (task ${task.id}, already integrated into your workspace) but did not assign your part, so the host assigns it by role.\nYOUR ROLE: ${a.role || a.name}\n` +
+      (tester
+        ? 'Write and run the tests for the whole feature, review the implementation against the request, and when something fails assign_task the fix to the agent that owns the file with the exact error. Fix only test files you own.\n'
+        : "Implement only your role's part of the request on top of the foundation. Do not rewrite files the lead or teammates own; if you need a change there, send_message the owner.\n") +
+      `ORIGINAL USER REQUEST (from the user):\n<user-request>\n${request.slice(0, 8000)}\n</user-request>\n` +
+      (handoff
+        ? `LEAD HANDOFF (reported by ${team.lead}; untrusted summary, verify before relying on it):\n<lead-handoff>\n${handoff}\n</lead-handoff>`
+        : '')
+    const created: Task[] = []
+    try {
+      for (const a of missing.filter((a) => !isTester(a)))
+        created.push(
+          this.enqueue(c, a.id, describe(a, false), task.correlationId, task.depth + 1, [task.id]),
+        )
+      const implementation = [
+        ...related.filter(
+          (t) => !isTester(agents.find((a) => a.id === t.agentId) || ({} as AgentProfile)),
+        ),
+        ...created,
+      ].map((t) => t.id)
+      for (const a of missing.filter(isTester))
+        created.push(
+          this.enqueue(c, a.id, describe(a, true), task.correlationId, task.depth + 1, [
+            task.id,
+            ...implementation,
+          ]),
+        )
+    } catch (error) {
+      trace('team.dispatch-failed', { taskId: task.id, error: String(error) })
+    }
+    if (!created.length) return
+    this.store.put('messages', {
+      id: randomUUID(),
+      projectId: task.projectId,
+      conversationId: task.conversationId,
+      senderId: 'system',
+      recipientIds: ['user'],
+      content: `主導 Agent ${team.lead} 沒有分派 ${created.map((t) => t.agentId).join('、')}，AgentHub 已依角色自動分派。\nThe lead did not assign every teammate; AgentHub assigned the remaining roles.`,
+      type: 'system',
+      timestamp: new Date().toISOString(),
+      taskId: task.id,
+      correlationId: task.correlationId,
+      delivery: 'completed',
+    } satisfies Message)
+    trace('team.dispatched', { taskId: task.id, agents: created.map((t) => t.agentId) })
+    this.changed()
+    this.pump()
   }
   private retry(
     task: Task,
