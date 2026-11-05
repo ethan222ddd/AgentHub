@@ -48,6 +48,22 @@ function abortable<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
 export const antigravityEnvelope = z
   .object({ message: z.string(), requests: z.array(collaborationSchema).max(8) })
   .strict()
+/** Recovers the envelope when agy returned it as text (optionally fenced) instead of structured. */
+export function envelopeFromText(response: string): z.infer<typeof antigravityEnvelope> {
+  const body = response
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/```$/, '')
+    .trim()
+  if (body.startsWith('{'))
+    try {
+      const parsed = antigravityEnvelope.safeParse(JSON.parse(body))
+      if (parsed.success) return parsed.data
+    } catch {
+      // not JSON: fall through to a plain reply
+    }
+  return { message: response, requests: [] }
+}
 interface Event {
   event: string
   init?: { tools?: string[]; permission_mode?: string; model?: string }
@@ -344,7 +360,14 @@ export class AntigravityAdapter implements AgentAdapter {
               else {
                 void (async () => {
                   signal.throwIfAborted()
-                  const envelope = antigravityEnvelope.parse(event.result!.structured_output)
+                  // Some agy builds drop structured_output on long turns. Treat that as a plain
+                  // reply with no collaboration requests instead of failing finished work;
+                  // a present but malformed envelope is still rejected.
+                  const structured = event.result!.structured_output
+                  const envelope =
+                    structured === undefined || structured === null
+                      ? envelopeFromText(event.result!.response || '')
+                      : antigravityEnvelope.parse(structured)
                   const reads = envelope.requests.filter((request) =>
                     readOperations.has(request.operation),
                   )

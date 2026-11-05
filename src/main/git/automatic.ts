@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, lstat } from 'node:fs/promises'
+import { mkdir, readFile, lstat, writeFile } from 'node:fs/promises'
 import { extname, join, resolve, dirname } from 'node:path'
 import { randomUUID, createHash } from 'node:crypto'
 import type { AgentProfile, Project, Task, Workspace, TestRun } from '../../shared/types'
@@ -417,7 +417,10 @@ export class AutomaticProjects {
               '工作區原先已有未完成修改，已保留全部內容。請先檢查 Diff，再明確重試整合；不會自動混入發佈。',
           }
         }
-        if (this.store.settings().autonomy === 'auto') await this.ensureLockfile(workspace, signal)
+        if (this.store.settings().autonomy === 'auto') {
+          await this.ignoreBuildArtifacts(workspace)
+          await this.ensureLockfile(workspace, signal)
+        }
         const scan = await scanFiles(workspace.path, await changedFiles(workspace.path))
         if (scan.excluded.length || scan.review.length)
           throw new Error(
@@ -700,6 +703,24 @@ export class AutomaticProjects {
     if (kind === 'test' && autonomous && /No test files found/i.test(output))
       return this.noTests(workspace)
     throw new Error(result.error || 'Integration snapshot tests failed')
+  }
+  /**
+   * Build output that agents leave behind (tsc -b, vite build, npm install) is neither source
+   * nor a secret. Ignore it locally so it never blocks a commit or a clean-tree check.
+   */
+  private async ignoreBuildArtifacts(workspace: Workspace) {
+    const common = await git(workspace.path, ['rev-parse', '--git-common-dir']).catch(() => '')
+    if (!common) return
+    const file = join(resolve(workspace.path, common), 'info', 'exclude')
+    const existing = existsSync(file) ? await readFile(file, 'utf8') : ''
+    const patterns = ['*.tsbuildinfo', 'node_modules/', 'dist/', 'build/', 'coverage/', '*.log']
+    const missing = patterns.filter((p) => !existing.split(/\r?\n/).includes(p))
+    if (!missing.length) return
+    await mkdir(dirname(file), { recursive: true })
+    await writeFile(
+      file,
+      `${existing}${existing && !existing.endsWith('\n') ? '\n' : ''}# AgentHub: generated build output\n${missing.join('\n')}\n`,
+    )
   }
   /**
    * Integration installs from a committed lockfile. When an agent added npm dependencies but no

@@ -19,6 +19,7 @@ import { withinWorkspace } from '../permissions/paths'
 import { ArtifactStore } from './artifacts'
 import { ContextMemory } from './context'
 import { proposeDecision } from './decisions'
+import { maxDepth } from './autonomy'
 
 export interface CollaborationHost {
   store: Store
@@ -267,7 +268,7 @@ export async function deliverCollaboration(
   // Validate the entire fanout before writing any delivery receipts.
   if (activates) {
     new AttachmentStore(host.store).resolve(task.projectId, input.attachmentIds || [])
-    if (task.depth + 1 > host.store.settings().maxDepth)
+    if (task.depth + 1 > maxDepth(host.store.settings()))
       throw new Error('Delegation depth limit reached')
     if (host.turnCount(task.correlationId) + recipients.length > host.store.settings().maxTurns)
       throw new Error('Agent turn budget reached')

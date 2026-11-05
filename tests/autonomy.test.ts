@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { autoDecision } from '../src/main/orchestrator/autonomy'
+import { autoDecision, maxDepth } from '../src/main/orchestrator/autonomy'
+import { envelopeFromText } from '../src/main/agents/antigravity'
 import { ApprovalQueue } from '../src/main/orchestrator/approvals'
 import { Orchestrator } from '../src/main/orchestrator/orchestrator'
 import { Store } from '../src/main/database/store'
@@ -236,5 +237,22 @@ describe('review findings from an ordinary task', () => {
     const report = store.list<Message>('messages').find((m) => m.senderId === 'antigravity')!
     expect(report.recipientIds).toEqual(['codex'])
     expect(report.content).toContain('[warning] src/App.tsx:12 Missing label')
+  })
+})
+
+describe('autonomous limits and Antigravity output recovery', () => {
+  it('gives autonomous teams a deeper delegation chain without lowering a larger setting', () => {
+    expect(maxDepth({ maxDepth: 3, autonomy: 'ask' })).toBe(3)
+    expect(maxDepth({ maxDepth: 3, autonomy: 'auto' })).toBe(8)
+    expect(maxDepth({ maxDepth: 12, autonomy: 'auto' })).toBe(12)
+  })
+
+  it('recovers a text envelope and treats plain text as a reply without requests', () => {
+    const fenced =
+      '```json\n{"message":"done","requests":[{"operation":"report_progress","recipients":[],"content":"ok"}]}\n```'
+    expect(envelopeFromText(fenced).requests).toHaveLength(1)
+    expect(envelopeFromText(fenced).message).toBe('done')
+    expect(envelopeFromText('All tests pass.')).toEqual({ message: 'All tests pass.', requests: [] })
+    expect(envelopeFromText('{not json')).toEqual({ message: '{not json', requests: [] })
   })
 })

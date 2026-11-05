@@ -21,6 +21,7 @@ import { Store } from '../database/store'
 import type { AutomaticProjects } from '../git/automatic'
 import { WorkspaceManager } from '../git/workspaces'
 import { ApprovalQueue } from './approvals'
+import { maxDepth } from './autonomy'
 import { deliverCollaboration } from './collaboration'
 import { executeTurn } from './execute-turn'
 import { createReview, requestReviewFix, type ReviewHost, type WorkflowReview } from './reviews'
@@ -194,7 +195,7 @@ export class Orchestrator {
     if (project.agentIds && !project.agentIds.includes(agentId))
       throw new Error('Recipient is not on this project team')
     if (c.stopped) throw new Error('Room stopped by user')
-    if (depth > settings.maxDepth)
+    if (depth > maxDepth(settings))
       throw new Error('Delegation depth limit reached. User intervention required.')
     const count = this.turnCount(correlationId)
     if (count >= settings.maxTurns)

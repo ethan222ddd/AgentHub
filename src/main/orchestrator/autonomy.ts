@@ -52,3 +52,14 @@ export function autoDecision(tool: string, detail: string, roots: string[]): Aut
   }
   return { allow: true, reason: 'routine development inside the assigned workspace' }
 }
+
+/**
+ * Lead → teammate → tester → fix owner already uses three levels, so an autonomous team gets
+ * a deeper delegation chain. The turn, token and cost budgets still bound the run.
+ */
+export const AUTONOMOUS_MIN_DEPTH = 8
+export function maxDepth(settings: { maxDepth: number; autonomy?: 'auto' | 'ask' }): number {
+  return settings.autonomy === 'auto'
+    ? Math.max(settings.maxDepth, AUTONOMOUS_MIN_DEPTH)
+    : settings.maxDepth
+}

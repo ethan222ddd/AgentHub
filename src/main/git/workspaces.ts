@@ -155,6 +155,7 @@ export class WorkspaceManager {
       'secrets.*',
       'secret.*',
       'service-account*.json',
+      '*.tsbuildinfo',
     ]
     const existing = new Set(content.split(/\r?\n/))
     const additions = patterns.filter((p) => !existing.has(p))
