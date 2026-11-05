@@ -27,7 +27,12 @@ const tag = 'REFERENCE_' + randomUUID().replaceAll('-', '')
 const seed = new Store(join(profile, 'agenthub.sqlite'))
 const project = seed.addProject(projectPath, 'Native host-read acceptance')
 seed.put('projects', { ...project, autoManaged: true })
-seed.put('settings', { ...seed.settings(), id: 'general', maxUsageTokens: 1000000 })
+seed.put('settings', {
+  ...seed.settings(),
+  id: 'general',
+  autonomy: 'ask',
+  maxUsageTokens: 1000000,
+})
 const room = seed.snapshot().conversations[0]
 const manager = new WorkspaceManager(seed, join(profile, 'workspaces'))
 const workspaces = await manager.prepare(project, false)

@@ -39,6 +39,9 @@ const reportPaths = {
   lifecycle: '.local/live-lifecycle/packaged-report.json',
   coding: '.local/live-release-coding/packaged-report.json',
   upgrade: '.local/installer-roundtrip/upgrade-report.json',
+  workflow: '.local/live-workflow/packaged-report.json',
+  stream: '.local/live-agy-stream/packaged-report.json',
+  soak: '.local/release-soak/packaged-report.json',
 }
 // Test output is local structured evidence. Read it independently from production IPC types.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -73,7 +76,36 @@ const {
   lifecycle,
   coding,
   upgrade,
+  workflow,
+  stream,
+  soak,
 } = reports
+requireEvidence(
+  workflow.threeNativeProviders &&
+    workflow.hostCheckpointWithoutGitGrant &&
+    workflow.independentWorktrees &&
+    workflow.exactSandboxTests &&
+    workflow.preservedOriginal &&
+    workflow.run.status === 'completed',
+  'Native contract workflow evidence missing',
+)
+requireEvidence(
+  stream.publicDeltaBeforeCompletion &&
+    stream.deltaCount > 1 &&
+    stream.noRawRoutingJson &&
+    stream.authoritativeFinalReplacement,
+  'Genuine AGY public incremental text evidence missing',
+)
+requireEvidence(
+  soak.initialHistory >= 4000 &&
+    soak.notes > 0 &&
+    soak.durationMs >= 120000 &&
+    soak.p95IpcRoundtripMs < 2000 &&
+    soak.historyRestored &&
+    soak.noReplay &&
+    soak.noModelTurns,
+  'Packaged load/persistence evidence missing',
+)
 requireEvidence(
   ['codex', 'claude', 'antigravity'].every((id) => web.providers[id]?.passed),
   'Native web tool evidence missing',
@@ -187,7 +219,9 @@ requireEvidence(
     /fail 0/.test(coding.finalProjectTest.stdout),
   'Actual final project test evidence missing',
 )
-const ownership = JSON.parse(await readFile('.local/installer-roundtrip/ownership.json', 'utf8')),
+const ownership = JSON.parse(
+    (await readFile('.local/installer-roundtrip/ownership.json', 'utf8')).replace(/^\uFEFF/, ''),
+  ),
   baseline = JSON.parse(await readFile('.local/installer-roundtrip/baseline-report.json', 'utf8'))
 requireEvidence(
   ownership.createdBy === 'AgentHub isolated installer validation' &&
@@ -216,7 +250,12 @@ requireEvidence(
   'Upgrade installer does not match release',
 )
 const oldManifest = JSON.parse(
-  await readFile(`release/${ownership.from}/BUILD_MANIFEST.json`, 'utf8'),
+  await readFile(
+    existsSync(`release/${ownership.from}/BUILD_MANIFEST.json`)
+      ? `release/${ownership.from}/BUILD_MANIFEST.json`
+      : `release/${ownership.from}/REVIEW_VALIDATION.json`,
+    'utf8',
+  ),
 )
 requireEvidence(
   oldManifest.artifacts.some(
@@ -246,6 +285,30 @@ requireEvidence(
     !e2e.errors.length,
   'Current unit/Electron results missing or failing',
 )
+const audit = JSON.parse(await readFile('.local/final-validation/audit.json', 'utf8')),
+  productionAudit = JSON.parse(
+    await readFile('.local/final-validation/audit-production.json', 'utf8'),
+  )
+requireEvidence(
+  audit.metadata?.vulnerabilities?.total === 0 &&
+    productionAudit.metadata?.vulnerabilities?.total === 0,
+  'Missing or failing dependency audit evidence',
+)
+const notifications = JSON.parse(
+  await readFile('.local/notifications/packaged-notifications-report.json', 'utf8'),
+)
+requireEvidence(
+  notifications.success &&
+    notifications.version === version &&
+    notifications.appAsarSha256 === asar &&
+    notifications.guardSha256 === guard &&
+    notifications.nativeToastShown &&
+    notifications.nativeOverlayCalled &&
+    notifications.realPreflightFailureNotified &&
+    notifications.doNotDisturbBlocked &&
+    notifications.modelTurns === 0,
+  'Native Windows notifications evidence missing',
+)
 async function sourceFiles(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true })
   const nested = await Promise.all(
@@ -263,6 +326,10 @@ const inputs = [
   ...(await sourceFiles('src')),
   ...(await sourceFiles('scripts')),
   ...(await sourceFiles('tests')),
+  ...(await sourceFiles('assets')),
+  '.github/workflows/windows.yml',
+  '.github/workflows/release.yml',
+  'docs/USER_GUIDE.zh-TW.md',
   'package.json',
   'package-lock.json',
   'tsconfig.json',
@@ -287,6 +354,7 @@ const manifest = {
   validation: {
     unitTests: unit.numPassedTests,
     electronE2E: e2e.stats.expected,
+    audit: { allAdvisories: 0, productionAdvisories: 0 },
     packagedReports: Object.keys(reportPaths).length,
     appAsarSha256: asar,
     nativeGuardSha256: guard,
@@ -351,28 +419,48 @@ const manifest = {
       passed: true,
       noModelTurns: true,
       foregroundAutoRefresh: true,
-      available: ['codex', 'claude'],
-      unavailable: ['antigravity'],
+      available: quota.quotas
+        .filter((q: { status: string }) => q.status === 'available')
+        .map((q: { provider: string }) => q.provider),
+      unavailable: quota.quotas
+        .filter((q: { status: string }) => q.status === 'unavailable')
+        .map((q: { provider: string }) => q.provider),
     },
     nativeImages: { passed: true, independentImageNonces: true },
+    nativeNotifications: {
+      passed: true,
+      noModelTurns: true,
+      osClickAutomated: false,
+      reportSha256: await sha('.local/notifications/packaged-notifications-report.json'),
+    },
     nativeWeb: { passed: true, providers: Object.keys(web.providers) },
     explicitRecovery: { passed: true, nativeSessionResumed: true },
     agyHostReads: { passed: true, nativeTurns: 4 },
     threeNativeOK: !!team.passed,
+    contractWorkflow: { passed: true, threeNativeProviders: true, exactSandboxTests: true },
+    agyIncrementalText: { passed: true, deltaCount: stream.deltaCount },
+    load: {
+      passed: true,
+      initialHistory: soak.initialHistory,
+      notes: soak.notes,
+      durationMs: soak.durationMs,
+      p95IpcRoundtripMs: soak.p95IpcRoundtripMs,
+    },
   },
   limitations: [
-    'Unsigned installers; no public release or automatic updater',
-    'No clean Windows VM/full permission/version matrix or external security audit',
+    'Unsigned installers; no automatic updater',
+    'Clean Windows Server CI is separate evidence; no clean Windows 10/11 client or external security audit',
     'Claude subscription CLI is live-tested; SDK/API-key mode has contract tests only',
     'Windows Job ownership is not filesystem/network isolation; Claude Shell isolation matrix incomplete',
-    'AGY public incremental text/headless quota not exposed by the verified CLI',
+    'AGY quota requires official zero-turn usage metadata from CLI 1.5.1+',
     'Manual reviewed-coding fixture tests are host-approved; automatic-project tests use native sandbox',
-    'Development dependency advisories require compatible remediation',
+    'User explicitly retained review item 2 automatic approval policy',
   ],
   evidenceNote:
-    'All twelve packaged reports belong to this exact application/guard. Baseline upgrade provenance is checked against the retained previous-release manifest. Evidence contains generated fixtures and is kept locally, separate from public source.',
+    'All fifteen packaged reports belong to this exact local application/guard. CI-built release binaries have separate offline/Electron/NSIS evidence. Baseline upgrade provenance is checked against its retained receipt. Private evidence is local, separate from public source.',
 }
 await writeFile('docs/BUILD_MANIFEST.json', JSON.stringify(manifest, null, 2) + '\n')
+await writeFile(join(root, 'BUILD_MANIFEST.json'), JSON.stringify(manifest, null, 2) + '\n')
 await writeFile(
   join(root, 'SHA256SUMS.txt'),
   artifacts

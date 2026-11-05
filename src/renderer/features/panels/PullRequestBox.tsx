@@ -64,8 +64,8 @@ export function PullRequestBox({ task, en, perform }: Props) {
           if (
             !window.confirm(
               text(
-                `把分支 ${preview.branch} 推送到 ${preview.repo}，並建立 PR 到 ${preview.base}？`,
-                `Push ${preview.branch} to ${preview.repo} and open a PR into ${preview.base}?`,
+                `把版本 ${preview.revision.slice(0, 12)} 推送到 ${preview.repo} 的 ${preview.branch}，並建立 PR 到 ${preview.base}？`,
+                `Push revision ${preview.revision.slice(0, 12)} to ${preview.repo}/${preview.branch} and open a PR into ${preview.base}?`,
               ),
             )
           )
@@ -73,6 +73,7 @@ export function PullRequestBox({ task, en, perform }: Props) {
           void run('create', {
             op: 'github.pr.create',
             taskId: task.id,
+            previewId: preview.id,
             title: preview.title,
             body: preview.body,
             branch: preview.branch,
@@ -83,6 +84,7 @@ export function PullRequestBox({ task, en, perform }: Props) {
           <GitPullRequest size={13} />
           {preview.repo} · {preview.base} ← {preview.branch}
         </h6>
+        <code>{preview.revision.slice(0, 12)}</code>
         <label>
           {text('標題', 'Title')}
           <input
@@ -204,15 +206,24 @@ export function PullRequestBox({ task, en, perform }: Props) {
             variant="outline"
             disabled={!!busy}
             onClick={() => {
-              if (
-                window.confirm(
-                  text(
-                    `把這個工作區的修正推送到 PR #${pr.number} 的分支 ${pr.branch}？`,
-                    `Push this workspace's fix to ${pr.branch} (PR #${pr.number})?`,
-                  ),
-                )
+              void run('prepare-update', { op: 'github.pr.prepare', taskId: task.id }).then(
+                async (value) => {
+                  const approved = value as PullRequestPreview
+                  if (
+                    window.confirm(
+                      text(
+                        `把版本 ${approved.revision.slice(0, 12)} 推送到 PR #${pr.number} 的分支 ${approved.branch}？\n${approved.files.slice(0, 20).join('\n')}`,
+                        `Push revision ${approved.revision.slice(0, 12)} to ${approved.branch} (PR #${pr.number})?\n${approved.files.slice(0, 20).join('\n')}`,
+                      ),
+                    )
+                  )
+                    await run('push', {
+                      op: 'github.pr.push',
+                      taskId: task.id,
+                      previewId: approved.id,
+                    })
+                },
               )
-                void run('push', { op: 'github.pr.push', taskId: task.id })
             }}
           >
             <Upload size={12} />

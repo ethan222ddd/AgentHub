@@ -32,6 +32,12 @@ try {
   await page.getByRole('button', { name: '建立 Git 隔離工作區', exact: true }).click()
   const snapshot = () => page.evaluate(() => window.agenthub.invoke<Snapshot>({ op: 'snapshot' }))
   await expect.poll(async () => (await snapshot()).workspaces.length, { timeout: 30000 }).toBe(3)
+  const configured = await snapshot()
+  await page.evaluate(
+    (settings) =>
+      window.agenthub.invoke({ op: 'settings.save', settings: { ...settings, autonomy: 'ask' } }),
+    configured.settings,
+  )
   await page.getByRole('button', { name: 'Close panel' }).click()
   await page
     .getByRole('textbox', { name: 'Message' })

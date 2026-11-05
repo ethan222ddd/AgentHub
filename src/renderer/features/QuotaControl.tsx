@@ -208,16 +208,7 @@ export function QuotaControl({
                   : (q.credits.balance ?? t('未知', 'Unknown'))}
               </small>
             )}
-            {q.detail && (
-              <p>
-                {q.provider === 'antigravity'
-                  ? t(
-                      '目前 headless 協定無額度查詢。請在官方 agy 互動介面使用 /usage 或 /quota、/credits。',
-                      'Headless protocol has no quota query. Use /usage or /quota and /credits in official interactive agy.',
-                    )
-                  : q.detail}
-              </p>
-            )}
+            {q.detail && <p>{q.detail}</p>}
             <small>
               {t('更新', 'Updated')} <time dateTime={q.checkedAt}>{date(q.checkedAt)}</time> ·{' '}
               {q.source}

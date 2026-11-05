@@ -9,7 +9,10 @@ import { guardIdentity } from './release-identity'
 const phase = process.argv[2]
 if (!['baseline', 'upgraded'].includes(phase)) throw new Error('Specify baseline or upgraded')
 const base = resolve('.local/installer-roundtrip')
-const owner = JSON.parse(await readFile(join(base, 'ownership.json'), 'utf8')) as {
+// Windows PowerShell 5.1 writes a BOM with Set-Content -Encoding utf8.
+const owner = JSON.parse(
+  (await readFile(join(base, 'ownership.json'), 'utf8')).replace(/^\uFEFF/, ''),
+) as {
   createdBy: string
   phase: string
   target: string
@@ -59,7 +62,12 @@ try {
           window.agenthub.invoke({ op: 'project.automation', projectId, enabled: false }),
           window.agenthub.invoke({
             op: 'settings.save',
-            settings: { ...settings, theme: 'dark', maxUsageTokens: 1000000 },
+            settings: {
+              ...settings,
+              ...('autonomy' in settings ? { autonomy: 'ask' } : {}),
+              theme: 'dark',
+              maxUsageTokens: 1000000,
+            },
           }),
         ]),
       { projectId: room.projectId, settings: s.settings },

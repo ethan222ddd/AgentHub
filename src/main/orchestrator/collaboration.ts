@@ -10,6 +10,7 @@ import type {
   Review,
   Task,
   Workspace,
+  WorkflowRun,
 } from '../../shared/types'
 import { isPlanning } from '../../shared/tasks'
 import { AttachmentStore } from '../attachments/store'
@@ -20,9 +21,11 @@ import { ArtifactStore } from './artifacts'
 import { ContextMemory } from './context'
 import { proposeDecision } from './decisions'
 import { maxDepth } from './autonomy'
+import type { AutomaticProjects } from '../git/automatic'
 
 export interface CollaborationHost {
   store: Store
+  automatic?: AutomaticProjects
   dedupe: Set<string>
   changed(): void
   publish(event: AppEvent): void
@@ -125,6 +128,25 @@ export async function deliverCollaboration(
   if (input.operation === 'read_context')
     return new ContextMemory(host.store.db).read(task.conversationId, input.messageIds || [])
   if (input.operation === 'publish_artifact') {
+    if (current.workflow && host.automatic) {
+      const run = host.store.require<WorkflowRun>('workflow_runs', current.workflow.runId)
+      const step = run.template.steps.find((s) => s.id === current.workflow!.stepId)
+      if (step?.publishArtifact && run.status === 'running') {
+        const workspace = host.store.require<Workspace>(
+          'workspaces',
+          current.workspaceId || `${current.projectId}:${current.agentId}`,
+        )
+        const checkpoint = await host.automatic.finish(
+          host.store.require<Project>('projects', current.projectId),
+          workspace,
+          signal,
+          undefined,
+          { checkpointOnly: true },
+        )
+        signal.throwIfAborted()
+        if (checkpoint.status !== 'staged') throw new Error(checkpoint.detail)
+      }
+    }
     const artifact = await new ArtifactStore(host.store).publish(
       task,
       input.paths || [],

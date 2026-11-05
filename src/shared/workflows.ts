@@ -81,7 +81,7 @@ export const builtinWorkflows: WorkflowTemplate[] = [
       step('contract', '發布規格契約', 'architect', {
         publishArtifact: true,
         instructions:
-          'Write a concrete API/specification contract in workspace files, checkpoint it and call publish_artifact with those paths. This stage only publishes a contract; it does not integrate its worktree.',
+          'Write a concrete API/specification contract in workspace files and call publish_artifact with those paths. The host safely checkpoints this configured contract step before publishing; no shell/Git command is needed. This stage only publishes a contract; it does not integrate its worktree.',
       }),
       step('backend', '後端實作', 'backend', {
         dependsOn: ['contract'],

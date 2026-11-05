@@ -18,7 +18,7 @@ AGY 現在可以透過結構化 `search_context`、`read_context`、`read_artifa
 
 ## 可觀察性與復原
 
-中間 JSON／暫定訊息不進公開聊天，只發佈完成驗證後的最後答案，不顯示私人推理。活動包含 native.turn.started/completed 與 host.read.started/completed/failed，帶原生回合、Task、Session、操作與請求 ID，以及來源訊息 ID／契約 Commit；不記錄 Host 結果內容。失敗原因經遮蔽後可查看。任務詳情顯示已配置的原生回合預算數量。
+中間路由 JSON 不進公開聊天；v0.13.0 可顯示公開 ACTIVE 增量，Host 續接會清除暫時文字，最終歷史只保留完成驗證後的答案，不顯示私人推理。活動包含 native.turn.started/completed 與 host.read.started/completed/failed，帶原生回合、Task、Session、操作與請求 ID，以及來源訊息 ID／契約 Commit；不記錄 Host 結果內容。失敗原因經遮蔽後可查看。任務詳情顯示已配置的原生回合預算數量。
 
 Stop、逾時、CLI 退出或 Adapter dispose 會阻止後續 stdin／副作用並終止該程序；Host 讀取等待中也能取消。不自動重新啟動程序、重播請求或重跑未完成 Task。JSON 持久化新增可選 nativeTurns，沿用 Schema 7；重啟保留數量並維持既有人工復原語意。
 
@@ -28,4 +28,4 @@ Stop、逾時、CLI 退出或 Adapter dispose 會阻止後續 stdin／副作用�
 
 `npm run test:live-agy-host` 使用真正 EXE：原生任務背景準備後才由 UI 貼上未知來源；搜尋摘要不含後段碼，必須再讀原訊息；另一個 Worktree 的未整合契約必須走 Host 精確版本讀取。確認三個碼、同一 Session、四個原生提示、只有一則公開答案、第二原生回合中停止，以及重啟不重播。契約由 Host 測試 Fixture 建立，沒有冒稱其他 Agent 產生它。
 
-主要修改：`agents/antigravity.ts`、`agents/adapter.ts`、`orchestrator/orchestrator.ts`、`shared/types.ts`、`renderer/features/SidePanel.tsx`；新增測試／Live 腳本及發行 manifest、手冊／狀態文件。AGY 逐 Token 公開串流與官方 headless 額度查詢仍為另外的上游能力缺口，未因本功能宣稱完成。
+主要修改：`agents/antigravity.ts`、`agents/adapter.ts`、`orchestrator/orchestrator.ts`、`shared/types.ts`、`renderer/features/SidePanel.tsx`；新增測試／Live 腳本及發行 manifest、手冊／狀態文件。v0.13.0 另接入 AGY 1.5.1 公開 ACTIVE 串流與官方零回合 /usage；各有獨立 Live 驗收，見 ACCEPTANCE_MATRIX。

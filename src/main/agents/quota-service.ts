@@ -40,7 +40,7 @@ export class QuotaService {
                 windows: [],
                 checkedAt: new Date(this.clock()).toISOString(),
                 detail:
-                  'Official headless CLI does not expose a quota query. Use /usage (or /quota) and /credits in the official interactive agy CLI. Context-window percentage is not account quota.',
+                  'This adapter does not provide a quota query. For Antigravity, use official agy 1.5.1+ /usage support; context-window percentage is not account quota.',
               }
           trace('quota.read', { agentId: agent.id, source: value.source, status: value.status })
         } catch (error) {

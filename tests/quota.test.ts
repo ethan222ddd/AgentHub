@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest'
 import { resolve } from 'node:path'
-import { codexQuota, claudeQuota } from '../src/main/agents/quota'
+import { codexQuota, claudeQuota, antigravityQuota } from '../src/main/agents/quota'
 import { QuotaService } from '../src/main/agents/quota-service'
 import { claudeControl } from '../src/main/agents/claude-control'
 import { JsonProcess } from '../src/main/agents/process'
@@ -30,6 +30,44 @@ const sample = () =>
       other: { primary: { usedPercent: 100 } },
     },
   })
+
+it('reads only official AGY zero-turn metadata, dynamic groups and valid remaining fractions', () => {
+  const report = {
+    status: 'SUCCESS',
+    num_turns: 0,
+    account: 'PRIVATE_ACCOUNT',
+    command: {
+      name: 'usage',
+      data: {
+        groups: [
+          {
+            name: 'Runtime group',
+            buckets: [
+              {
+                id: 'weekly',
+                name: 'Weekly remaining',
+                remaining_fraction: 0.975,
+                reset_time: '2026-11-12T00:00:00Z',
+              },
+              { id: 'other', remaining_fraction: 2, remaining_amount: 12, disabled: true },
+            ],
+          },
+        ],
+      },
+    },
+  }
+  const value = antigravityQuota(report)
+  expect(value.status).toBe('available')
+  expect(value.windows.map((w) => w.remainingPercent)).toEqual([97.5, null])
+  expect(value.windows[0].resetsAt).toBe('2026-11-12T00:00:00.000Z')
+  expect(value.windows[1]).toMatchObject({ remainingAmount: 12, disabled: true })
+  expect(JSON.stringify(value)).not.toContain('PRIVATE_ACCOUNT')
+  expect(() => antigravityQuota({ ...report, num_turns: 1 })).toThrow('zero-turn')
+  expect(() => antigravityQuota({ ...report, command: { name: 'model' } })).toThrow()
+  expect(antigravityQuota({ ...report, command: { name: 'usage', data: {} } }).status).toBe(
+    'unavailable',
+  )
+})
 
 it('normalizes multiple Codex windows without inferring authorization or retaining private fields', () => {
   const q = sample()

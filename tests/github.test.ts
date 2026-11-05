@@ -1,12 +1,15 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { Store } from '../src/main/database/store'
 import { WorkspaceManager, git } from '../src/main/git/workspaces'
 import { GitHubCli, summarizeChecks } from '../src/main/github/gh'
 import { GitHubService } from '../src/main/github/service'
+import { Orchestrator } from '../src/main/orchestrator/orchestrator'
+import type { AgentAdapter } from '../src/main/agents/adapter'
+import { requestSchema } from '../src/shared/schemas'
 import type { Message, Task, Workspace } from '../src/shared/types'
-import { directory, repository } from './helpers'
+import { directory, repository, until } from './helpers'
 
 const identity = [
   '-c',
@@ -172,7 +175,13 @@ describe('GitHub delivery', () => {
     expect(preview.body).toContain('Not verified:\n- Tax rounding')
     expect(preview.body).toContain('Closes #7')
 
-    const link = await service.createPr(done.id, preview.title, preview.body, preview.branch)
+    const link = await service.createPr(
+      done.id,
+      preview.title,
+      preview.body,
+      preview.branch,
+      preview.id,
+    )
     expect(link).toMatchObject({ number: 12, branch: preview.branch, state: 'OPEN' })
     // The branch really reached the remote, without force.
     expect(await git(env.bare, ['rev-parse', `refs/heads/${preview.branch}`])).toBe(
@@ -186,7 +195,9 @@ describe('GitHub delivery', () => {
     expect(env.store.require<Task>('tasks', done.id).pullRequest?.url).toBe(
       'https://github.com/acme/shop/pull/12',
     )
-    await expect(service.createPr(done.id, 't', 'b', preview.branch)).rejects.toThrow(/already/)
+    await expect(service.createPr(done.id, 't', 'b', preview.branch, preview.id)).rejects.toThrow(
+      /already/,
+    )
 
     await writeFile(
       join(gh.state, 'pr.json'),
@@ -236,10 +247,176 @@ describe('GitHub delivery', () => {
       join(gh.state, 'pr.json'),
       JSON.stringify({ state: 'OPEN', statusCheckRollup: [] }),
     )
-    await service.pushUpdate(fix.id)
+    const update = await service.preparePr(fix.id)
+    const published = await git(env.bare, ['rev-parse', `refs/heads/${preview.branch}`])
+    await writeFile(join(env.workspace.path, 'coupon.ts'), 'export const coupon = 3\n')
+    await git(env.workspace.path, [...identity, 'commit', '-qam', 'Later fix'])
+    await expect(service.pushUpdate(fix.id, update.id)).rejects.toThrow(/changed/)
+    expect(await git(env.bare, ['rev-parse', `refs/heads/${preview.branch}`])).toBe(published)
+    const approved = await service.preparePr(fix.id)
+    await service.pushUpdate(fix.id, approved.id)
     expect(await git(env.bare, ['rev-parse', `refs/heads/${preview.branch}`])).toBe(
       await git(env.workspace.path, ['rev-parse', 'HEAD']),
     )
     expect(env.store.require<Task>('tasks', done.id).pullRequest?.checks?.state).toBe('none')
+  }, 60000)
+
+  it('requires a host-issued preview and refuses a changed or replayed revision', async () => {
+    expect(
+      requestSchema.safeParse({
+        op: 'github.pr.create',
+        taskId: 't',
+        title: 't',
+        body: '',
+        branch: 'agenthub/test',
+      }).success,
+    ).toBe(false)
+    expect(requestSchema.safeParse({ op: 'github.pr.push', taskId: 't' }).success).toBe(false)
+    const gh = await fakeGitHub()
+    const env = await setup()
+    const service = new GitHubService(env.store, env.orchestrator, gh.cli)
+    await writeFile(join(env.workspace.path, 'previewed.ts'), 'export const value = 1\n')
+    await git(env.workspace.path, ['add', '.'])
+    await git(env.workspace.path, [...identity, 'commit', '-qm', 'Previewed'])
+    const done = env.task({ workspaceId: env.workspace.id, workspace: env.workspace.path })
+    env.store.put('tasks', done)
+    const preview = await service.preparePr(done.id)
+    const other = env.task({ workspaceId: env.workspace.id, workspace: env.workspace.path })
+    env.store.put('tasks', other)
+    await expect(service.createPr(other.id, 't', 'b', preview.branch, preview.id)).rejects.toThrow(
+      /preview/,
+    )
+    const expired = await service.preparePr(done.id)
+    const now = Date.now()
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(now + 16 * 60 * 1000)
+    try {
+      await expect(service.createPr(done.id, 't', 'b', expired.branch, expired.id)).rejects.toThrow(
+        /expired/,
+      )
+    } finally {
+      clock.mockRestore()
+    }
+    await writeFile(join(env.workspace.path, 'later.ts'), 'export const value = 2\n')
+    await git(env.workspace.path, ['add', '.'])
+    await git(env.workspace.path, [...identity, 'commit', '-qm', 'Not previewed'])
+    await expect(service.createPr(done.id, 't', 'b', preview.branch, preview.id)).rejects.toThrow(
+      /changed/,
+    )
+    await expect(
+      git(env.bare, ['rev-parse', '--verify', `refs/heads/${preview.branch}`]),
+    ).rejects.toThrow()
+    expect((await gh.calls()).some((c) => c.args[0] === 'pr')).toBe(false)
+    await expect(service.createPr(done.id, 't', 'b', preview.branch, preview.id)).rejects.toThrow(
+      /preview/,
+    )
+    const fresh = await service.preparePr(done.id)
+    const results = await Promise.allSettled([
+      service.createPr(done.id, 't', 'b', fresh.branch, fresh.id),
+      service.createPr(done.id, 't', 'b', fresh.branch, fresh.id),
+    ])
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1)
+    expect(
+      (await gh.calls()).filter((c) => c.args[0] === 'pr' && c.args[1] === 'create'),
+    ).toHaveLength(1)
+    expect(await git(env.bare, ['rev-parse', `refs/heads/${fresh.branch}`])).toBe(fresh.revision)
+    env.store.close()
+  }, 60000)
+
+  it('pushes the approved SHA even if HEAD advances immediately before the push', async () => {
+    const gh = await fakeGitHub()
+    const env = await setup()
+    const service = new GitHubService(env.store, env.orchestrator, gh.cli)
+    await writeFile(join(env.workspace.path, 'previewed.ts'), 'export const value = 1\n')
+    await git(env.workspace.path, ['add', '.'])
+    await git(env.workspace.path, [...identity, 'commit', '-qm', 'Previewed'])
+    const done = env.task({ workspaceId: env.workspace.id, workspace: env.workspace.path })
+    env.store.put('tasks', done)
+    const preview = await service.preparePr(done.id)
+    const boundary = service as unknown as {
+      approvedWorkspace: (task: Task, preview: unknown) => Promise<Workspace>
+    }
+    const validate = boundary.approvedWorkspace.bind(service)
+    vi.spyOn(boundary, 'approvedWorkspace').mockImplementationOnce(async (task, frozen) => {
+      const ws = await validate(task, frozen)
+      await writeFile(join(ws.path, 'later.ts'), 'export const later = 2\n')
+      await git(ws.path, ['add', '.'])
+      await git(ws.path, [...identity, 'commit', '-qm', 'Concurrent turn'])
+      return ws
+    })
+    await service.createPr(done.id, preview.title, preview.body, preview.branch, preview.id)
+    expect(await git(env.bare, ['rev-parse', `refs/heads/${preview.branch}`])).toBe(
+      preview.revision,
+    )
+    expect(await git(env.workspace.path, ['rev-parse', 'HEAD'])).not.toBe(preview.revision)
+    env.store.close()
+  }, 60000)
+
+  it('keeps CI and issue metadata through eager execution and automatic retries', async () => {
+    const gh = await fakeGitHub()
+    const env = await setup()
+    let runs = 0
+    const adapter: AgentAdapter = {
+      async detect() {
+        throw new Error('Not used by this fixture')
+      },
+      async run(ctx) {
+        ctx.saveSession('fixture-only')
+        if (++runs === 1) throw new Error('Transient fixture failure')
+        return 'Fixture completed'
+      },
+      async dispose() {},
+    }
+    const orchestrator = new Orchestrator(env.store, new Map([['codex', adapter]]), () => {})
+    const service = new GitHubService(env.store, orchestrator, gh.cli)
+    try {
+      const parent = env.task({
+        pullRequest: {
+          url: 'https://github.com/acme/shop/pull/12',
+          number: 12,
+          repo: 'acme/shop',
+          branch: 'agenthub/ci-fix',
+          base: 'main',
+          createdAt: new Date().toISOString(),
+          state: 'OPEN',
+          checks: {
+            state: 'failing',
+            failing: [{ name: 'unit' }],
+            checkedAt: new Date().toISOString(),
+          },
+        },
+      })
+      env.store.put('tasks', parent)
+      const fix = await service.fixCi(parent.id)
+      expect(fix.pullRequest?.number).toBe(12)
+      await until(
+        () =>
+          env.store
+            .list<Task>('tasks')
+            .some((t) => t.retryOf === fix.id && t.status === 'completed'),
+        15000,
+      )
+      for (const t of env.store
+        .list<Task>('tasks')
+        .filter((t) => t.id === fix.id || t.retryOf === fix.id)) {
+        expect(t.pullRequest?.number).toBe(12)
+        expect(t.source).toEqual({ kind: 'ci_fix', prUrl: parent.pullRequest!.url })
+        expect(t.name).toBe('修正 PR #12 的 CI')
+      }
+      const message = await service.importIssue(env.c.id, 7, ['codex'])
+      await until(
+        () =>
+          env.store
+            .list<Task>('tasks')
+            .some((t) => t.correlationId === message.id && t.status === 'completed'),
+        15000,
+      )
+      const imported = env.store.list<Task>('tasks').find((t) => t.correlationId === message.id)!
+      expect(imported.source).toMatchObject({ kind: 'github_issue', number: 7 })
+      expect(imported.name).toBe('#7 Add coupon codes')
+    } finally {
+      await orchestrator.dispose()
+      service.dispose()
+      env.store.close()
+    }
   }, 60000)
 })

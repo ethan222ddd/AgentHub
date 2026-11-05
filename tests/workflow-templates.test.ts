@@ -204,6 +204,12 @@ describe(
       const s = await fixture(async (ctx) => {
         const task = s.store.require<Task>('tasks', ctx.taskId!)
         if (ctx.readOnly) {
+          if (ctx.agent.provider === 'codex') {
+            expect(ctx.prompt).toContain('non-mutating file listing, reading and searching')
+            expect(ctx.prompt).toContain('native read-only sandbox')
+          } else {
+            expect(ctx.prompt).toContain('Do not invoke run_command')
+          }
           await ctx.collaborate({
             operation: 'submit_review',
             recipients: [],
@@ -214,11 +220,8 @@ describe(
           })
         } else if (task.workflow?.stepId === 'contract') {
           await writeFile(join(ctx.workspace, 'contract.json'), '{"version":1}')
-          const workspace = s.store.require<import('../src/shared/types').Workspace>(
-            'workspaces',
-            `${task.projectId}:${task.agentId}`,
-          )
-          await s.manager.checkpoint(workspace, 'Fixture immutable contract')
+          // The runtime has native file tools only. The configured publisher step must
+          // obtain a safe host checkpoint without granting arbitrary Git commands.
           await ctx.collaborate({
             operation: 'publish_artifact',
             recipients: [],

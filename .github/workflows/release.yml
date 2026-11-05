@@ -1,0 +1,56 @@
+name: Publish verified Windows release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Require passing Windows checks for this exact commit
+        id: ci
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          commit=$(git rev-parse HEAD)
+          version=$(node -p "require('./package.json').version")
+          test "$GITHUB_REF_NAME" = "v$version" || { echo 'Tag and package version differ'; exit 1; }
+          run_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/windows.yml/runs?head_sha=$commit&branch=main&event=push&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')
+          test -n "$run_id" || { echo 'No passing Windows checks for the tagged commit'; exit 1; }
+          echo "run=$run_id" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v8
+        with:
+          name: AgentHub-Windows-x64-windows-2025
+          path: artifacts
+          run-id: ${{ steps.ci.outputs.run }}
+          github-token: ${{ github.token }}
+      - name: Prepare checksums and public source archive
+        env:
+          VERSION: ${{ steps.ci.outputs.version }}
+        run: |
+          mkdir deliver
+          find artifacts -type f \( -name '*.exe' -o -name '*.html' \) -exec cp '{}' deliver/ \;
+          test -f "deliver/AgentHub Setup $VERSION.exe"
+          test -f "deliver/AgentHub-$VERSION-portable.exe"
+          test -f "deliver/AgentHub-$VERSION-UserGuide.html"
+          mv "deliver/AgentHub Setup $VERSION.exe" "deliver/AgentHub-$VERSION-Setup.exe"
+          git archive --format=zip --prefix="AgentHub-$GITHUB_REF_NAME/" -o "deliver/AgentHub-$GITHUB_REF_NAME-source.zip" HEAD
+          cd deliver
+          sha256sum *.exe *.html *.zip > SHA256SUMS.txt
+      - name: Publish tested build without exposing credentials to the application
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WINDOWS_RUN: ${{ steps.ci.outputs.run }}
+        run: |
+          cp "docs/RELEASE_$GITHUB_REF_NAME.md" release-notes.md
+          printf '\nWindows CI: https://github.com/%s/actions/runs/%s\n\nVerified commit: `%s`\n' "$GITHUB_REPOSITORY" "$WINDOWS_RUN" "$(git rev-parse HEAD)" >> release-notes.md
+          gh release create "$GITHUB_REF_NAME" deliver/* --repo "$GITHUB_REPOSITORY" --verify-tag --title "AgentHub $GITHUB_REF_NAME" --notes-file release-notes.md

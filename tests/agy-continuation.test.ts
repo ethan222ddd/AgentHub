@@ -62,6 +62,49 @@ it('returns actual structured host results to the same native session and publis
     await s.adapter.dispose()
   }
 })
+it('streams actual ACTIVE public fragments before completion and reconciles without routing JSON or reasoning', async () => {
+  const s = setup('stream')
+  s.ctx.replaceText = vi.fn()
+  let completed = false
+  try {
+    const work = s.adapter.run(s.ctx).finally(() => {
+      completed = true
+    })
+    await until(() => vi.mocked(s.ctx.delta).mock.calls.length > 0)
+    expect(completed).toBe(false)
+    expect(vi.mocked(s.ctx.delta).mock.calls.flat().join('')).toBe(
+      'Public streaming before completion',
+    )
+    expect(await work).toBe('Validated public answer')
+    expect(s.ctx.replaceText).toHaveBeenLastCalledWith('Validated public answer')
+    expect(JSON.stringify(vi.mocked(s.ctx.delta).mock.calls)).not.toMatch(
+      /PRIVATE_REASONING|requests/,
+    )
+  } finally {
+    await s.adapter.dispose()
+  }
+})
+it('buffers structured JSON fragments until a validated final result', async () => {
+  const s = setup('stream-json')
+  s.ctx.replaceText = vi.fn()
+  try {
+    expect(await s.adapter.run(s.ctx)).toBe('Validated public answer')
+    expect(s.ctx.delta).toHaveBeenCalledExactlyOnceWith('Validated public answer')
+    expect(s.ctx.replaceText).not.toHaveBeenCalled()
+  } finally {
+    await s.adapter.dispose()
+  }
+})
+it('never marks a streamed response complete when the native turn fails', async () => {
+  const s = setup('stream-denied')
+  s.ctx.replaceText = vi.fn()
+  try {
+    await expect(s.adapter.run(s.ctx)).rejects.toThrow()
+    expect(s.ctx.replaceText).not.toHaveBeenCalledWith('Validated public answer')
+  } finally {
+    await s.adapter.dispose()
+  }
+})
 it('caps repeated read rounds and executes an identical request only once', async () => {
   const s = setup('loop')
   try {

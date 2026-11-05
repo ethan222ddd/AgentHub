@@ -71,7 +71,8 @@ const report: Record<string, unknown> = {
 async function approvals() {
   const review = page.getByRole('button', { name: '前往批准', exact: true })
   if (await review.count()) await review.first().click()
-  for (const card of await page.locator('.approval').all()) {
+  const card = page.locator('.approval').first()
+  if (await card.count()) {
     const tool = await card.locator('b').first().innerText()
     const allow = [
       'Read',
@@ -113,6 +114,7 @@ try {
     op: 'settings.save',
     settings: {
       ...s.settings,
+      autonomy: 'ask',
       maxUsageTokens: 1000000,
       maxTurns: 12,
       maxDepth: 4,
@@ -132,6 +134,17 @@ try {
       detected.some((d) => d.provider === id && d.installed && d.authenticated !== false),
     ),
   ).toBe(true)
+  const codexModel = detected
+    .find((d) => d.provider === 'codex')
+    ?.models.find((m) => m.id.includes('sol'))
+  if (codexModel)
+    await invoke({
+      op: 'conversation.runtime',
+      conversationId: room.id,
+      agentId: 'codex',
+      model: codexModel.id,
+      reasoningEffort: codexModel.reasoningEfforts?.includes('low') ? 'low' : '',
+    })
   const flash = detected
     .find((d) => d.provider === 'antigravity')
     ?.models.find((m) => m.id.includes('flash') && m.id.endsWith('-low'))
@@ -146,7 +159,7 @@ try {
   await page
     .getByRole('textbox', { name: 'Message' })
     .fill(
-      `@Codex Generated native collaboration acceptance. First use the structured agenthub_collaborate assign_task to recipient claude with content: "Using native Write/Edit tools, preserve exports.format in frontend.cjs and add exports.formatUpper = n => \`VALUE: \${n}\`. Add frontend.test.cjs using node:test and strict assert for formatUpper(9) === VALUE: 9 and format(9) === value: 9. Do not run commands or delegate. Reply FRONTEND_READY." Then use your native file editing tool to preserve exports.double in backend.cjs and add exports.triple = n => n * 3; add backend.test.cjs using node:test and strict assert for triple(4) === 12 and double(4) === 8. Work only on backend files. No shell, network, commits or other delegation. Finish BACKEND_READY.`,
+      `@Codex Generated native collaboration acceptance. First use the structured agenthub_collaborate assign_task to recipient claude with content: "Using native Write/Edit tools, preserve exports.format in frontend.cjs and add exports.formatUpper = n => \`VALUE: \${n}\`. Add frontend.test.cjs using node:test and strict assert for formatUpper(9) === VALUE: 9 and format(9) === value: 9. Do not run commands or delegate. Reply FRONTEND_READY." The generated backend.cjs starts with the exact line 'exports.double = n => n * 2'. Use native apply_patch without shell inspection to preserve that line and add exports.triple = n => n * 3; add backend.test.cjs using node:test and strict assert for triple(4) === 12 and double(4) === 8. Work only on backend files. No shell, network, commits or other delegation. Finish BACKEND_READY.`,
     )
   await page.getByRole('button', { name: 'Send', exact: true }).click()
   await settled()
@@ -156,6 +169,10 @@ try {
   expect(backend.path).not.toBe(frontend.path)
   expect(await readFile(join(project, 'backend.cjs'), 'utf8')).not.toContain('triple')
   expect(await readFile(join(project, 'frontend.cjs'), 'utf8')).not.toContain('formatUpper')
+  expect(await readFile(join(backend.path, 'backend.cjs'), 'utf8')).toContain('exports.triple')
+  expect(await readFile(join(frontend.path, 'frontend.cjs'), 'utf8')).toContain(
+    'exports.formatUpper',
+  )
   const revisions = []
   for (const w of [backend, frontend])
     revisions.push(

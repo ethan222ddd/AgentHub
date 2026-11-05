@@ -194,6 +194,7 @@ export const requestSchema = z.discriminatedUnion('op', [
     .object({
       op: z.literal('github.pr.create'),
       taskId: id,
+      previewId: id,
       title: z.string().trim().min(1).max(256),
       body: z.string().max(60000),
       branch: z
@@ -202,7 +203,7 @@ export const requestSchema = z.discriminatedUnion('op', [
         .refine((b) => !b.includes('..') && !b.endsWith('.lock') && !b.endsWith('.')),
     })
     .strict(),
-  z.object({ op: z.literal('github.pr.push'), taskId: id }).strict(),
+  z.object({ op: z.literal('github.pr.push'), taskId: id, previewId: id }).strict(),
   z.object({ op: z.literal('github.pr.refresh'), taskId: id }).strict(),
   z.object({ op: z.literal('github.ci.fix'), taskId: id }).strict(),
   z

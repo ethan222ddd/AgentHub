@@ -38,8 +38,16 @@ export function useWorkspaceEvents(
             .catch((e) => state.set({ error: String(e) }))
         }, 70)
       }
-      if (event.type === 'delta' && event.conversationId === state.conversationId)
-        deltas.set(event.messageId, (deltas.get(event.messageId) || '') + event.delta)
+      if (event.type === 'delta' && event.conversationId === state.conversationId) {
+        if (event.replace) {
+          deltas.delete(event.messageId)
+          state.set({
+            messages: state.messages.map((m) =>
+              m.id === event.messageId ? { ...m, content: event.delta } : m,
+            ),
+          })
+        } else deltas.set(event.messageId, (deltas.get(event.messageId) || '') + event.delta)
+      }
       if (event.type === 'activity' && event.activity.conversationId === state.conversationId)
         state.set({ activities: [...state.activities, event.activity].slice(-200) })
       if (event.type === 'approvals') {

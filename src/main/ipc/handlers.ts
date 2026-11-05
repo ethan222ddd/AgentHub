@@ -143,9 +143,15 @@ export function makeHandler(
       case 'github.pr.prepare':
         return hub().preparePr(request.taskId)
       case 'github.pr.create':
-        return hub().createPr(request.taskId, request.title, request.body, request.branch)
+        return hub().createPr(
+          request.taskId,
+          request.title,
+          request.body,
+          request.branch,
+          request.previewId,
+        )
       case 'github.pr.push':
-        return hub().pushUpdate(request.taskId)
+        return hub().pushUpdate(request.taskId, request.previewId)
       case 'github.pr.refresh':
         return hub().refresh(request.taskId)
       case 'github.ci.fix':

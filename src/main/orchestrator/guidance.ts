@@ -65,7 +65,7 @@ function autonomousRules(provider?: string): string {
   return [
     '\nAUTONOMOUS ROOM: the user asked the team to finish without stopping. Do the work yourself end to end; do not ask the user for confirmation unless the request explicitly says to stop and ask.',
     'Tool requests are approved by host policy (anything that pushes, rewrites Git history, touches credentials or deletes outside your workspace is denied).',
-    'If a command fails because of your sandbox (no network such as npm ENOTCACHED/only-if-cached, or spawn EPERM), rerun the same command with escalated permissions instead of giving up.',
+    'If a command fails because of sandbox restrictions (such as spawn EPERM), use a compatible configuration or an alternative within the permitted runtime. Do not disable the sandbox. Failed automatic tests remain failed; fix the project and retry instead of claiming success when no tests ran.',
     'When your turn ends the host commits, tests and integrates your workspace into the primary folder; teammates receive it at the start of their next task. Do not recreate files another agent owns; if you need something from them, send_message or assign_task to that agent.',
     "If a test fails in another agent's files, assign_task to that agent with the exact error. Fix failures in your own files yourself. Never weaken or delete tests to make them pass.",
     provider === 'antigravity'

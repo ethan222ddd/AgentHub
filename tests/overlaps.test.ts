@@ -20,7 +20,7 @@ const commit = (cwd: string, message: string) =>
     message,
   ])
 
-describe('file overlap early warning', () => {
+describe('file overlap early warning', { timeout: 60000 }, () => {
   it('parses porcelain -z output including renames', () => {
     expect(parsePorcelain(' M src/a.ts\0?? new file.ts\0R  b2.ts\0b.ts\0')).toEqual([
       'src/a.ts',

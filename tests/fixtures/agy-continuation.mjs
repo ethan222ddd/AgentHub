@@ -22,6 +22,44 @@ createInterface({ input: process.stdin }).on('line', (line) => {
       conversation_id: 'agy-continuation',
       init: { tools: ['read_file'], permission_mode: 'request-review' },
     })
+  if (['stream', 'stream-json', 'stream-denied'].includes(mode)) {
+    const envelope = { message: 'Validated public answer', requests: [] }
+    const step = (step_type, state, text_delta) =>
+      send({
+        event: 'step_update',
+        step_update: {
+          conversation_id: 'agy-continuation',
+          step_index: 1,
+          step_type,
+          state,
+          text_delta,
+        },
+      })
+    step('thinking', 'ACTIVE', 'PRIVATE_REASONING_SENTINEL')
+    step(
+      'agent_response',
+      'ACTIVE',
+      mode === 'stream-json' ? '{"message":"ROUTING_JSON_SENTINEL"' : 'Public streaming ',
+    )
+    step(
+      'agent_response',
+      'ACTIVE',
+      mode === 'stream-json' ? ',"requests":[]}' : 'before completion',
+    )
+    setTimeout(() => {
+      step('agent_response', 'DONE', JSON.stringify(envelope))
+      send({
+        event: 'result',
+        result: {
+          status: mode === 'stream-denied' ? 'ERROR' : 'SUCCESS',
+          num_turns: 1,
+          conversation_id: 'agy-continuation',
+          structured_output: envelope,
+        },
+      })
+    }, 300)
+    return
+  }
   if (['hang', 'late-duplicate'].includes(mode) && round > 1) return
   let envelope
   if (round === 1 || mode === 'loop') {

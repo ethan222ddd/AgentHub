@@ -25,6 +25,8 @@ export interface RunContext {
   signal: AbortSignal
   emit(type: string, detail: string, turnId?: string): void
   delta(text: string): void
+  /** Reconcile provisional public streaming text with the validated final response. */
+  replaceText?(text: string): void
   saveSession(nativeId: string): void
   approve(tool: string, detail: string, risk?: string): Promise<boolean>
   collaborate(input: CollaborationInput): Promise<unknown>

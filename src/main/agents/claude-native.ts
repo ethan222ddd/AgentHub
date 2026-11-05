@@ -31,6 +31,35 @@ interface NativeEvent {
     content_block?: { type: string; name?: string }
   }
 }
+/** Classify provider failures without exposing raw result text or tool arguments. */
+export function nativeClaudeFailure(
+  event: Pick<NativeEvent, 'subtype' | 'is_error' | 'errors' | 'result' | 'permission_denials'>,
+): string | undefined {
+  const denied = event.permission_denials?.length || 0
+  if (event.subtype === 'success' && !event.is_error && !denied) return undefined
+  const diagnostic = [
+    ...(Array.isArray(event.errors) ? event.errors.slice(0, 8) : []),
+    event.is_error ? event.result : undefined,
+  ]
+    .filter((value): value is string => typeof value === 'string')
+    .map((value) => value.slice(0, 4000))
+    .join('\n')
+  if (
+    /oauth.{0,60}(?:expired|refresh)|failed to authenticate|not logged in|authentication required/i.test(
+      diagnostic,
+    )
+  )
+    return 'Claude Code sign-in is no longer valid. Run `claude auth login` in a local terminal, then retry the task.'
+  if (/rate.limit|usage limit|out of (?:extra )?usage|too many requests|\b429\b/i.test(diagnostic))
+    return 'Claude Code reported a usage or rate limit. Check its official usage screen and retry after the limit resets.'
+  if (denied)
+    return `Claude Code denied ${denied} tool request(s). Review the activity and workspace permissions before retrying.`
+  if (/ECONNRESET|ENOTFOUND|ETIMEDOUT|network error|connection refused/i.test(diagnostic))
+    return 'Claude Code reported a network error. Check connectivity and retry.'
+  if (event.subtype === 'error_max_turns')
+    return 'Claude Code reached the native turn limit. Inspect the partial changes before retrying.'
+  return 'Claude Code did not complete the task. Check official CLI login and diagnostics before retrying.'
+}
 export class NativeClaudeAdapter implements AgentAdapter {
   private processes = new Set<JsonProcess>()
   async getQuota() {
@@ -237,12 +266,8 @@ export class NativeClaudeAdapter implements AgentAdapter {
                 costUsd: m.total_cost_usd,
                 source: 'native-estimate',
               })
-            if (m.subtype !== 'success' || m.is_error || m.permission_denials?.length)
-              reject(
-                new Error(
-                  m.errors?.join('\n') || 'Claude Code failed or reported permission denials',
-                ),
-              )
+            const failure = nativeClaudeFailure(m)
+            if (failure) reject(new Error(failure))
             else resolve(m.result || '')
           }
         })

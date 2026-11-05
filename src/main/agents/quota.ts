@@ -57,6 +57,55 @@ export function codexQuota(raw: unknown): Quota {
       : 'No subscription rate-limit windows returned by this runtime/account.',
   }
 }
+/** Official standalone CLI metadata command. Never infer balance from model token usage. */
+export function antigravityQuota(raw: unknown): Quota {
+  const r = obj(raw),
+    command = obj(r.command),
+    data = obj(command.data)
+  if (r.status !== 'SUCCESS' || r.num_turns !== 0 || command.name !== 'usage')
+    throw new Error('Antigravity did not return a zero-turn official /usage report.')
+  const windows: QuotaWindow[] = []
+  for (const [groupIndex, value] of (Array.isArray(data.groups) ? data.groups : [])
+    .slice(0, 20)
+    .entries()) {
+    const group = obj(value)
+    for (const [index, value] of (Array.isArray(group.buckets) ? group.buckets : [])
+      .slice(0, 20)
+      .entries()) {
+      if (windows.length >= 80) break
+      const bucket = obj(value),
+        fraction = bucket.remaining_fraction
+      windows.push({
+        id: `${groupIndex}:${label(bucket.id, String(index))}`,
+        label: `${label(group.name, 'Model group')} · ${label(bucket.name, 'Limit')}`,
+        remainingPercent:
+          typeof fraction === 'number' &&
+          Number.isFinite(fraction) &&
+          fraction >= 0 &&
+          fraction <= 1
+            ? Math.round(fraction * 10000) / 100
+            : null,
+        resetsAt: date(bucket.reset_time),
+        ...(typeof bucket.remaining_amount === 'number' &&
+        Number.isFinite(bucket.remaining_amount) &&
+        bucket.remaining_amount >= 0
+          ? { remainingAmount: bucket.remaining_amount }
+          : {}),
+        ...(typeof bucket.disabled === 'boolean' ? { disabled: bucket.disabled } : {}),
+      })
+    }
+  }
+  return {
+    provider: 'antigravity',
+    source: 'Antigravity CLI /usage',
+    status: windows.length ? 'available' : 'unavailable',
+    windows,
+    checkedAt: new Date().toISOString(),
+    detail: windows.length
+      ? undefined
+      : 'No official quota buckets returned. Verify CLI login and /usage availability.',
+  }
+}
 export function claudeQuota(raw: unknown): Quota {
   const r = obj(raw),
     limits = obj(r.rate_limits),

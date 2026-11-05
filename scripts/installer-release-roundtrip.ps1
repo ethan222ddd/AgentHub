@@ -53,7 +53,7 @@ if($taskProcess.ExitCode -ne 0){throw ('Installer failed: '+$taskProcess.ExitCod
 $taskExe=Join-Path $taskInstall 'AgentHub.exe'
 if($Phase -eq 'uninstall'){
   $taskDeadline=[DateTime]::UtcNow.AddSeconds(30)
-  while((Test-Path -LiteralPath $taskExe) -and [DateTime]::UtcNow -lt $taskDeadline){Start-Sleep -Milliseconds 250}
+  while(((Test-Path -LiteralPath $taskExe) -or @(InstalledAgentHub).Count) -and [DateTime]::UtcNow -lt $taskDeadline){Start-Sleep -Milliseconds 250}
   if(Test-Path -LiteralPath $taskExe){throw 'Uninstaller did not remove validation executable'}
   if(@(InstalledAgentHub).Count){throw 'Uninstall registry entry remains'}
 }else{

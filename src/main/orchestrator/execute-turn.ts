@@ -221,7 +221,7 @@ export async function executeTurn(
       })
     }
     host.store.put('tasks', {
-      ...task,
+      ...host.store.require<Task>('tasks', task.id),
       workspace: workspace.path,
       revision,
       status: 'running',
@@ -311,6 +311,18 @@ export async function executeTurn(
             if (message) host.store.put('messages', message)
             persistTimer = undefined
           }, 250)
+      },
+      replaceText: (text) => {
+        if (controller.signal.aborted) return
+        message.content = redact(text).slice(0, 500000)
+        host.store.put('messages', message)
+        host.publish({
+          type: 'delta',
+          messageId: message.id,
+          conversationId: task.conversationId,
+          delta: message.content,
+          replace: true,
+        })
       },
       emit: (type, detail, turnId = task.id) => {
         const activity: Activity = {

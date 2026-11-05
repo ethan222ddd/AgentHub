@@ -1,6 +1,6 @@
 {
   "name": "agenthub",
-  "version": "0.12.2",
+  "version": "0.13.0",
   "private": true,
   "description": "Local-first multi-agent collaborative coding workspace",
   "author": "AgentHub contributors",
@@ -12,7 +12,8 @@
   "main": "dist/main/index.js",
   "type": "module",
   "overrides": {
-    "katex": "$katex"
+    "katex": "$katex",
+    "minimatch@>=7 <11.0.1": "11.0.4"
   },
   "scripts": {
     "build:native": "tsx scripts/build-process-guard.ts",
@@ -41,6 +42,9 @@
     "test:live-lifecycle": "tsx scripts/live-lifecycle.ts",
     "test:live-notifications": "tsx scripts/live-notifications.ts",
     "test:release-coding": "tsx scripts/live-release-coding.ts",
+    "test:live-workflow": "tsx scripts/live-workflow.ts",
+    "test:live-agy-stream": "tsx scripts/live-agy-stream.ts",
+    "test:soak": "tsx scripts/release-soak.ts",
     "test:installed-upgrade": "tsx scripts/live-installed-upgrade.ts",
     "benchmark:context": "tsx scripts/benchmark-context.ts",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build",

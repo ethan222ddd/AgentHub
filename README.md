@@ -4,40 +4,19 @@
 
 [GitHub 原始碼](https://github.com/ethan222ddd/AgentHub) · [Windows CI／安裝包](https://github.com/ethan222ddd/AgentHub/actions/workflows/windows.yml) · [開發與模組指南](docs/DEVELOPMENT.md)
 
-**v0.12.2：全自動團隊模式。** 一則訊息指定多位代理時，由主導代理定好分工並分派，其他人依角色接手、測試者最後驗證；工具請求依 Host 政策自動放行並留下紀錄，失敗自動交回修正，預設不停下來等你。實測一則提示即由 Codex、Claude、Antigravity 完成可運作的待辦清單網頁。用法見使用手冊第 19 章「全自動模式」。
+**v0.13.0：原生協作與發佈驗收。** 包含可自訂工作流程、全自動團隊、Windows 通知、計畫關卡、交接、決策、Diff 意見與 GitHub 交付；修復自動測試 gate、確切 SHA 推送、任務 metadata 及繁中 Diff。AGY 1.5.1+ 加入官方零模型回合額度與公開文字增量串流，契約範本由 Host 安全 checkpoint。
 
-**v0.12.1：工程維護。** 建立 Git 基準與原始碼追蹤，拆分排程／回合／協作／批准／審查、聊天室、設定、活動面板、範本頁與 CSS。沿用原有功能與權限政策；生成檔和本機維護資料保持忽略追蹤。
-
-[Windows CI 已通過](https://github.com/ethan222ddd/AgentHub/actions/runs/41943842088)：27 個測試檔／161 項離線測試、11 項 Electron E2E（含打包版啟動）、NSIS 與 Portable 建置成功。驗證程式碼為 `07da02579301a2e045daf75bca8df1ffd240ca0c`；本輪未重跑付費 Live。
-
-**協作與交付工具（PR #1、#2，尚未合併）**：
-
-- **看進度**：任務依賴圖／看板、檔案衝突預警、用量與花費趨勢。
-- **控制**：鍵盤批准佇列（`Ctrl+Shift+A`）、先提計畫（唯讀計畫，批准後才改檔）、專案決策紀錄。
-- **回饋**：結構化交接摘要、Diff 行內意見。
-- **交付**：用你自己登入的 GitHub CLI 匯入 Issue、從任務開 PR，CI 失敗時交回代理修正。
-
-用法見使用手冊第 19 章。
-
-首次使用請讀 [繁體中文使用手冊](docs/USER_GUIDE.zh-TW.md)／[離線 HTML 手冊](docs/USER_GUIDE.html)。目前距離正式版尚缺的功能與驗收見 [發佈準備清單](docs/RELEASE_READINESS.md)。
-
-**v0.12.0：可自訂工作流程範本。** 聊天室「流程」可選擇、增加、修改、複製與刪除範本，設定角色、先決步驟、不可變產物交接、審查與有界回修。內建「Codex 實作 → Claude 審查」及「AGY 契約 → 平行實作 → 交叉審查」，通過既有指定版本審查、測試與安全 gate 才整合。詳見 [流程使用手冊](docs/WORKFLOW_TEMPLATES.md)。本次只驗證相關流程，不重跑付費代理全套。
-
-**v0.11.0：Windows 通知與工作列提醒。** 新批准、完成／失敗、整合待處理會通知；點擊開啟對應聊天室與活動。設定 → 一般可選勿擾或只通知批准，工作列仍保留待處理數。詳見 [使用與驗證範圍](docs/NOTIFICATIONS.md)。本次只跑通知相關測試，未重跑付費代理全套驗收。
-
-**v0.10.0：審查完整性與候選版驗收。** 審查結論必須由結構化工具提交且 Runtime 成功完成，才能成為指定 Reviewer 對確切版本的批准。較新的退件／失敗會取代舊批准；缺少審查者時停止自動整合。聊天室非同步初始化、發送及更新會尊重最新選取。詳見 [本階段實作](docs/RELEASE_CANDIDATE.md)。
-
-保留原有 [Windows 程序守護與異常復原](docs/PROCESS_LIFECYCLE.md)、[AGY Host 讀取橋接](docs/AGY_HOST_READS.md) 與 [自動專案流程](docs/AUTOMATIC_PROJECTS.md)。
+首次使用請讀 [繁體中文使用手冊](docs/USER_GUIDE.zh-TW.md)／[離線 HTML 手冊](docs/USER_GUIDE.html)。驗收範圍、尚存限制與測試證據見 [20 項驗收表](docs/ACCEPTANCE_MATRIX.md)、[發佈狀態](docs/RELEASE_READINESS.md) 與 [修復紀錄](docs/REVIEW_FIXES.md)。歷史結果不視為本版 Live 驗證。
 
 ## Windows 安裝與執行
 
-聊天室已加入[剩餘額度](docs/QUOTAS.md)：Codex／Claude 原生訂閱額度、重置時間及前景自動更新；AGY headless 目前無可驗證的額度查詢，明確提示使用官方 `/usage`，不顯示推算值。
+聊天室可顯示[剩餘額度](docs/QUOTAS.md)：三家原生官方額度、重置時間及前景刷新；AGY 需要 1.5.1+ 的零回合 /usage，不支援時清楚說明，不顯示推算值。
 
-下載 [v0.12.1 Windows x64 安裝包](https://github.com/ethan222ddd/AgentHub/actions/runs/41943842088/artifacts/13377538391)（GitHub Actions Artifact，可能需要登入 GitHub，保留至 2026-11-12；不是正式 GitHub Release）。解壓後選擇 `AgentHub Setup 0.12.1.exe` 或 `AgentHub-0.12.1-portable.exe`。
+正式建置下載入口：[GitHub Releases](https://github.com/ethan222ddd/AgentHub/releases)。標籤發佈工作必須先確認同一 Commit 的 Windows CI 成功；若沒有 v0.13.0 Release，代表尚未發佈，請勿以歷史 Artifact 當成新版。
 
-自行打包的安裝程式位於 `release/0.12.2/AgentHub Setup 0.12.2.exe`，免安裝版位於 `release/0.12.2/AgentHub-0.12.2-portable.exe`；CI 產物不會自動下載到本機。
+本機產物：release/0.13.0/AgentHub Setup 0.13.0.exe、release/0.13.0/AgentHub-0.13.0-portable.exe；以同目錄 SHA256SUMS 核對。下載版由乾淨 CI 另行建置，雜湊不必與本機 Live 版相同，各有獨立來源證據。
 
-平常使用安裝版或 Portable。開發用解壓版可執行 `npm run package:dir` 重新建立，再開啟 `release/0.12.2/win-unpacked/AgentHub.exe`。Portable 預設資料在執行檔旁 `AgentHubData`，安裝版使用 Electron 使用者資料目錄；實際位置在設定顯示。安裝包尚未簽章。卸載不刪除聊天資料與使用者專案。使用 Schema 8，可遷移讀取舊資料，舊版 App 不可開啟新版資料庫；升級前先備份。Portable 採 electron-builder 官方 ZIP payload；體積包含 Electron 與執行所需元件。
+平常使用安裝版或 Portable。開發用解壓版可執行 `npm run package:dir` 重新建立，再開啟 `release/0.13.0/win-unpacked/AgentHub.exe`。Portable 預設資料在執行檔旁 `AgentHubData`，安裝版使用 Electron 使用者資料目錄；實際位置在設定顯示。安裝包尚未簽章。卸載不刪除聊天資料與使用者專案。使用 Schema 8，可遷移讀取舊資料，舊版 App 不可開啟新版資料庫；升級前先備份。Portable 採 electron-builder 官方 ZIP payload；體積包含 Electron 與執行所需元件。
 
 原始碼需要 Node.js 24、npm、Git；Windows 守護器以系統 .NET Framework 4.x 的 Framework64 csc.exe 自動編譯：
 
@@ -88,7 +67,7 @@ npm run package:win
 
 **Claude Code**：預設啟動本機未修改的官方 `claude.exe`，由 CLI 自己管理登入、訂閱與限額。需要 **2.1.295+** 的 fail-closed HTTP hooks；本次驗證 2.1.296。使用 `--restricted`，工具經 Host 邊界檢查與批准。獨立的 Agent SDK/API 模式仍可選用，API Key 只在本機透過 Windows DPAPI 保存，不會取得或轉存訂閱 OAuth Token。切換原生/API 模式時建立新對話。參考 [官方 CLI 產品使用條件](https://code.claude.com/docs/en/legal-and-compliance)與 [SDK 說明](https://code.claude.com/docs/en/agent-sdk/overview)。
 
-**Antigravity**：真正 `agy`、NDJSON、原生 Conversation ID/resume、Sandbox 與官方 JSON Schema。先在官方互動 CLI 登入。模型從 `agy models` 取得，不寫死名稱。每回合明確批准工作區存取；額外 Shell 指令須先在設定列出確切指令，回合開始仍請求批准，沒有略過全部權限。未授權操作在 Headless 中拒絕並顯示失敗；唯讀 Review 拒絕寫入與指令。可恢復的檔案不存在錯誤顯示於工具紀錄，不會假稱為權限拒絕。公開文字於結構驗證後顯示，目前不逐 Token 顯示原始路由 JSON。參考 [官方 Headless 協定](https://antigravity.google/docs/cli/headless/)。
+**Antigravity**：真正 `agy`、NDJSON、原生 Conversation ID/resume、Sandbox 與官方 JSON Schema。先在官方互動 CLI 登入。模型從 `agy models` 取得，不寫死名稱。每回合明確批准工作區存取；額外 Shell 指令須先在設定列出確切指令，回合開始仍請求批准，沒有略過全部權限。未授權操作在 Headless 中拒絕並顯示失敗；唯讀 Review 拒絕寫入與指令。可恢復的檔案不存在錯誤顯示於工具紀錄，不會假稱為權限拒絕。公開 ACTIVE 文字可增量顯示；隱藏 reasoning／路由 JSON，Host 續接時清除暫時文字，完成後以驗證答案取代。參考 [官方 Headless 協定](https://antigravity.google/docs/cli/headless/)。
 
 ## 資料、安全與復原
 

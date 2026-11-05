@@ -7,14 +7,15 @@ import { join, resolve } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
 import { existsSync } from 'node:fs'
+import { directory } from '../tests/helpers'
 import { git } from '../src/main/git/workspaces'
 import type { Snapshot, Detection, Message } from '../src/shared/types'
 const { version } = JSON.parse(await readFile('package.json', 'utf8')) as { version: string }
 const base = resolve('.local/live-automatic')
 await mkdir(base, { recursive: true })
 const profile = await mkdtemp(join(base, 'profile-')),
-  blank = await mkdtemp(join(base, '空白 專案-')),
-  existing = await mkdtemp(join(base, '既有 程式碼-'))
+  blank = await directory('空白 專案-'),
+  existing = await directory('既有 程式碼-')
 const nonce = randomUUID().replaceAll('-', ''),
   proofs = Object.fromEntries(['codex', 'claude', 'antigravity'].map((p) => [p, `${p}:${nonce}`]))
 await writeFile(join(existing, 'original.txt'), nonce)
@@ -122,7 +123,7 @@ try {
     (settings) =>
       window.agenthub.invoke({
         op: 'settings.save',
-        settings: { ...settings, maxUsageTokens: 1000000 },
+        settings: { ...settings, autonomy: 'ask', maxUsageTokens: 1000000 },
       }),
     settings,
   )
@@ -134,7 +135,7 @@ try {
       const model =
         d.models.find((m) =>
           d.provider === 'codex'
-            ? m.id.includes('sol')
+            ? m.id.includes('luna')
             : d.provider === 'claude'
               ? m.id === 'sonnet'
               : /flash/.test(m.id) && /low/.test(m.id),

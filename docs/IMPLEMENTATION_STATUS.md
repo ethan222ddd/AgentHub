@@ -1,4 +1,14 @@
-# Implementation status — v0.12.1
+# Implementation status — v0.13.0
+
+## 本輪：四項收尾與最終驗收
+
+新增 AGY 官方零回合額度、公開 ACTIVE 增量及 Host 契約 checkpoint；加入 SQLite 故障、原生工作流程、打包版負載、雙 Windows Server 乾淨 NSIS CI 與確切 Commit 的 Release gate。修復 Codex 唯讀審查指示及 Claude 原生 OAuth 失效診斷。Typecheck／Lint、40 檔 217 項離線、13 項 Electron E2E、15 份同雜湊打包驗收與真實 Windows 通知通過，npm audit 0。完整證據見 [BUILD_MANIFEST](BUILD_MANIFEST.json)、[20 項對照](ACCEPTANCE_MATRIX.md)及 [Release](https://github.com/ethan222ddd/AgentHub/releases/tag/v0.13.0) 的乾淨 CI 連結。保留使用者接受的 Win10／11 實機缺口與審查第 2 項政策。
+
+## 本輪：審查修復 1、3、4、5、6（2026-11-05）
+
+移除自動測試的 EPERM Host fallback 與依 stdout 認定零測試成功；失敗保留快照且交由現有有界自動修正處理。PR 建立及修正推送使用 Host 保存的一次性、15 分鐘預覽，固定檔案／提交讀取及實際推送的 SHA，驗證工作區與推送目標，避免 HEAD 競爭與重複送出。修正執行準備階段覆寫最新任務 metadata，重試保留 PR／Issue 來源；正確解碼 Git 的 UTF-8 八進位、引號、反斜線與 tab 標頭，支援繁中 Diff 行內意見。Schema 8 不變。
+
+依使用者明確要求保留審查第 2 項，自動批准政策檔案未修改；全自動團隊、派工和有界修正保留。修改清單、測試與實際交付結果見 REVIEW_FIXES；本輪只做相關免付費回歸，不重跑整套或三家 Live。
 
 ## 本輪：協作與交付工具（2026-11-05，分支 feat/collab-workflow）
 
@@ -170,33 +180,33 @@ Typecheck/Lint、40 tests、4 Electron E2E 通過。真實圖像辨識證據與�
 
 ## 六階段成果
 
-| 階段 | 已完成的可執行功能 | 驗證 | 主要檔案 |
-|---|---|---|---|
-| 1 Desktop | Electron/React strict TS、Tailwind/shadcn-style 元件、Zustand、SQLite 3 次 Migration、專案、聊天、主題、繁中/英文、安全 IPC | 真正 Electron 專案／聊天／重啟／DPAPI／匯出 E2E | `src/main/index.ts`、`database/store.ts`、`ipc/handlers.ts`、`src/preload/index.ts`、`src/renderer/App.tsx`、`styles.css` |
-| 2 Runtime | Codex App Server、官方 Claude Code native subscription 與獨立 SDK/API、Antigravity native CLI；建立/恢復、實際改檔、工具、批准、取消、錯誤 | 三家 Live 真實改檔／隨機 nonce 讀取／原生 Session resume；打包版三家 OK | `agents/codex.ts`、`codex-runtime.ts`、`claude.ts`、`claude-native.ts`、`antigravity.ts`、`process.ts` |
-| 3 Shared Chat | 獨立原生 Session、共享時間軸、@Mentions、任意成員數、多實例、增量背景、摘錄摘要、詞彙相關檢索、分頁、完整訊息搜尋、虛擬捲動 | Live 5 回合、240 訊息 E2E、SQLite tests | `orchestrator/orchestrator.ts`、`database/store.ts`、`renderer/stores/workspace.ts`、`App.tsx` |
-| 4 Collaboration | Codex dynamic tools、Claude authenticated local HTTP MCP/hook、AGY structured-output bridge、10 種操作、依賴、每工作區 turn lock、主管、反循環、用量預算、Stop | 真正 Codex→Claude→AGY→Codex，人工批准/並發/去重/深度/用量測試 | `agents/collaboration-server.ts`、`adapter.ts`、`orchestrator/orchestrator.ts`、`shared/schemas.ts` |
-| 5 Coding | Worktree、Diff、Checkpoint、初始 Commit 審核、不可變契約、獨立 Review 快照與評論/修正/重審、測試版本綁定、預覽、雙向同步、Revert、快照清理 | 真實 Git 隔離/衝突/漂移/回滾；原生平行 coding + AGY Review + 兩次已測試合併 + 最終專案測試 | `git/workspaces.ts`、`tasks/tests.ts`、`orchestrator/artifacts.ts`、`features/Reviews.tsx`、`WorkflowControls.tsx`、`SidePanel.tsx` |
-| 6 Release | Windows NSIS、metadata-only rotating logs、啟動失敗視窗、重啟不重播、DB backup/restore、鍵盤焦點、CI workflow、操作文件 | Typecheck/Lint/34 tests、Electron E2E、真實打包 EXE；安裝/升級結果見 VALIDATION | `database/backup.ts`、`app/diagnostics.ts`、`components/useDialog.ts`、`.github/workflows/windows.yml`、`scripts/installer-roundtrip.ps1` |
+| 階段            | 已完成的可執行功能                                                                                                                                             | 驗證                                                                                       | 主要檔案                                                                                                                                  |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 Desktop       | Electron/React strict TS、Tailwind/shadcn-style 元件、Zustand、SQLite 3 次 Migration、專案、聊天、主題、繁中/英文、安全 IPC                                    | 真正 Electron 專案／聊天／重啟／DPAPI／匯出 E2E                                            | `src/main/index.ts`、`database/store.ts`、`ipc/handlers.ts`、`src/preload/index.ts`、`src/renderer/App.tsx`、`styles.css`                 |
+| 2 Runtime       | Codex App Server、官方 Claude Code native subscription 與獨立 SDK/API、Antigravity native CLI；建立/恢復、實際改檔、工具、批准、取消、錯誤                     | 三家 Live 真實改檔／隨機 nonce 讀取／原生 Session resume；打包版三家 OK                    | `agents/codex.ts`、`codex-runtime.ts`、`claude.ts`、`claude-native.ts`、`antigravity.ts`、`process.ts`                                    |
+| 3 Shared Chat   | 獨立原生 Session、共享時間軸、@Mentions、任意成員數、多實例、增量背景、摘錄摘要、詞彙相關檢索、分頁、完整訊息搜尋、虛擬捲動                                    | Live 5 回合、240 訊息 E2E、SQLite tests                                                    | `orchestrator/orchestrator.ts`、`database/store.ts`、`renderer/stores/workspace.ts`、`App.tsx`                                            |
+| 4 Collaboration | Codex dynamic tools、Claude authenticated local HTTP MCP/hook、AGY structured-output bridge、10 種操作、依賴、每工作區 turn lock、主管、反循環、用量預算、Stop | 真正 Codex→Claude→AGY→Codex，人工批准/並發/去重/深度/用量測試                              | `agents/collaboration-server.ts`、`adapter.ts`、`orchestrator/orchestrator.ts`、`shared/schemas.ts`                                       |
+| 5 Coding        | Worktree、Diff、Checkpoint、初始 Commit 審核、不可變契約、獨立 Review 快照與評論/修正/重審、測試版本綁定、預覽、雙向同步、Revert、快照清理                     | 真實 Git 隔離/衝突/漂移/回滾；原生平行 coding + AGY Review + 兩次已測試合併 + 最終專案測試 | `git/workspaces.ts`、`tasks/tests.ts`、`orchestrator/artifacts.ts`、`features/Reviews.tsx`、`WorkflowControls.tsx`、`SidePanel.tsx`       |
+| 6 Release       | Windows NSIS、metadata-only rotating logs、啟動失敗視窗、重啟不重播、DB backup/restore、鍵盤焦點、CI workflow、操作文件                                        | Typecheck/Lint/34 tests、Electron E2E、真實打包 EXE；安裝/升級結果見 VALIDATION            | `database/backup.ts`、`app/diagnostics.ts`、`components/useDialog.ts`、`.github/workflows/windows.yml`、`scripts/installer-roundtrip.ps1` |
 
 其他本次修改：`src/shared/types.ts`、`src/renderer/features/Settings.tsx`、`TeamEditor.tsx`、`tests/workflows.test.ts`、`native-bridge.test.ts`、`adapters.test.ts`、`store.test.ts`、`tests/e2e/history.spec.ts`、`scripts/live*.ts`、`packaged-team-chat.ts`、`upgrade-profile.ts`、`package.json`、`package-lock.json`、`eslint.config.js`、README 與本文件。
 
 ## 20 項核心驗收
 
-| # | 驗收 | 實際證據 |
-|---|---|---|
-| 1–2 | Windows 啟動、專案載入 | Electron E2E、packaged EXE、原生對話框及 SQLite |
-| 3–5 | 真實 Codex/Claude/Antigravity | `.local/live-report.json`：三家 passed，非 Mock |
-| 6–7 | 同場聊天室、@Mention | `.local/packaged-team/report.json`：真正 UI @All，三家各回 OK |
-| 8 | 三家實際開發 | 三家各自 native tool 寫入 proof.txt，恢復後讀出 Host 新 nonce |
-| 9–10 | Agent 間傳送、真正收到並回覆 | `.local/collaboration-report.json`：5 個原生回合及雙向回覆確認 |
-| 11 | 獨立 Worktree | Live 協作三份工作區、Git isolation tests |
-| 12–13 | 工作狀態、Diff | Activity/任務/批准/失敗狀態、真實 Git Diff |
-| 14 | 互相 Review | `.local/coding-report.json`：AGY 對 Codex Commit 提交 verdict、檔案行號評論，沒有冒稱執行測試 |
-| 15–16 | 停止取消、權限 | abort/程序樹、手動委派與取消、junction、MCP token/origin、唯讀拒絕、native soft-denial tests |
-| 17 | 重啟恢復聊天 | 真正 Electron restart E2E、備份重啟還原與舊版資料遷移 |
-| 18–19 | 整合測試、安全合併 | 真正 native coding 的兩個 integration snapshot 通過測試，最終專案再次通過；Git drift/conflict/test gate tests |
-| 20 | Windows Installer | `release/0.2.0/AgentHub Setup 0.2.0.exe`；安裝 roundtrip 詳見 VALIDATION |
+| #     | 驗收                          | 實際證據                                                                                                      |
+| ----- | ----------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 1–2   | Windows 啟動、專案載入        | Electron E2E、packaged EXE、原生對話框及 SQLite                                                               |
+| 3–5   | 真實 Codex/Claude/Antigravity | `.local/live-report.json`：三家 passed，非 Mock                                                               |
+| 6–7   | 同場聊天室、@Mention          | `.local/packaged-team/report.json`：真正 UI @All，三家各回 OK                                                 |
+| 8     | 三家實際開發                  | 三家各自 native tool 寫入 proof.txt，恢復後讀出 Host 新 nonce                                                 |
+| 9–10  | Agent 間傳送、真正收到並回覆  | `.local/collaboration-report.json`：5 個原生回合及雙向回覆確認                                                |
+| 11    | 獨立 Worktree                 | Live 協作三份工作區、Git isolation tests                                                                      |
+| 12–13 | 工作狀態、Diff                | Activity/任務/批准/失敗狀態、真實 Git Diff                                                                    |
+| 14    | 互相 Review                   | `.local/coding-report.json`：AGY 對 Codex Commit 提交 verdict、檔案行號評論，沒有冒稱執行測試                 |
+| 15–16 | 停止取消、權限                | abort/程序樹、手動委派與取消、junction、MCP token/origin、唯讀拒絕、native soft-denial tests                  |
+| 17    | 重啟恢復聊天                  | 真正 Electron restart E2E、備份重啟還原與舊版資料遷移                                                         |
+| 18–19 | 整合測試、安全合併            | 真正 native coding 的兩個 integration snapshot 通過測試，最終專案再次通過；Git drift/conflict/test gate tests |
+| 20    | Windows Installer             | `release/0.2.0/AgentHub Setup 0.2.0.exe`；安裝 roundtrip 詳見 VALIDATION                                      |
 
 ## 已知限制與下一步
 

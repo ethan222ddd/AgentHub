@@ -99,7 +99,7 @@ try {
         window.agenthub.invoke({ op: 'project.automation', projectId, enabled: false }),
         window.agenthub.invoke({
           op: 'settings.save',
-          settings: { ...settings, maxUsageTokens: 1000000 },
+          settings: { ...settings, autonomy: 'ask', maxUsageTokens: 1000000 },
         }),
       ]),
     { projectId: room.projectId, settings: s.settings },
@@ -160,7 +160,15 @@ try {
     if (kind === 'main-crash') {
       const pids = [owned.ownerPid, owned.appGuardPid!, ...owned.processes.map((p) => p.pid!)]
       // Playwright's own Main ChildProcess handle; no recursive global PID scan.
-      console.log('fault.target', JSON.stringify({ owner: owned.ownerPid, launcher: app!.process().pid, guard: owned.appGuardPid, processes: owned.processes }))
+      console.log(
+        'fault.target',
+        JSON.stringify({
+          owner: owned.ownerPid,
+          launcher: app!.process().pid,
+          guard: owned.appGuardPid,
+          processes: owned.processes,
+        }),
+      )
       terminate(owned.ownerPid)
       await reaped(pids)
       await app!.close().catch(() => {})

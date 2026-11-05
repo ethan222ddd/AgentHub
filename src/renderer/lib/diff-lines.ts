@@ -13,8 +13,40 @@ export interface DiffFile {
   deletions: number
 }
 
-const unquote = (path: string) =>
-  path.startsWith('"') && path.endsWith('"') ? path.slice(1, -1).replace(/\\(.)/g, '$1') : path
+// Git C-quotes paths using octal UTF-8 bytes, not JavaScript Unicode escapes.
+function unquote(path: string): string {
+  if (!path.startsWith('"') || !path.endsWith('"')) return path
+  const chars = [...path.slice(1, -1)]
+  const encoder = new TextEncoder()
+  const bytes: number[] = []
+  const escapes: Record<string, number> = {
+    a: 7,
+    b: 8,
+    t: 9,
+    n: 10,
+    v: 11,
+    f: 12,
+    r: 13,
+    '"': 34,
+    '\\': 92,
+  }
+  for (let i = 0; i < chars.length; i++) {
+    if (chars[i] !== '\\' || i + 1 === chars.length) {
+      bytes.push(...encoder.encode(chars[i]))
+      continue
+    }
+    const next = chars[++i]
+    if (/[0-7]/.test(next)) {
+      let octal = next
+      while (octal.length < 3 && i + 1 < chars.length && /[0-7]/.test(chars[i + 1]))
+        octal += chars[++i]
+      bytes.push(parseInt(octal, 8))
+    } else if (next in escapes) bytes.push(escapes[next])
+    else bytes.push(...encoder.encode('\\' + next))
+  }
+  return new TextDecoder().decode(new Uint8Array(bytes))
+}
+const prefixedPath = (path: string) => unquote(path).replace(/^[ab]\//, '')
 
 /** Parses `git diff` output into files and lines with old/new line numbers. */
 export function parseUnifiedDiff(text: string): DiffFile[] {
@@ -25,9 +57,9 @@ export function parseUnifiedDiff(text: string): DiffFile[] {
   for (const raw of text.split('\n')) {
     const line = raw.replace(/\r$/, '')
     if (line.startsWith('diff --git ')) {
-      const match = /^diff --git (?:"?a\/)(.+?)"? (?:"?b\/)(.+?)"?$/.exec(line)
+      const match = /^diff --git ("(?:\\.|[^"\\])*"|a\/.*?) ("(?:\\.|[^"\\])*"|b\/.*)$/.exec(line)
       file = {
-        path: unquote(match?.[2] || line.slice(11)),
+        path: prefixedPath(match?.[2] || line.slice(11)),
         status: 'modified',
         lines: [],
         additions: 0,
@@ -47,10 +79,14 @@ export function parseUnifiedDiff(text: string): DiffFile[] {
     if (!file.lines.some((l) => l.kind === 'hunk')) {
       if (line.startsWith('new file mode')) file.status = 'added'
       else if (line.startsWith('deleted file mode')) file.status = 'deleted'
-      else if (line.startsWith('rename to ')) file.status = 'renamed'
-      else if (line.startsWith('Binary files')) file.status = 'binary'
+      else if (line.startsWith('rename to ')) {
+        file.status = 'renamed'
+        file.path = unquote(line.slice(10))
+      } else if (line.startsWith('Binary files')) file.status = 'binary'
+      else if (line.startsWith('--- ') && line !== '--- /dev/null')
+        file.path = prefixedPath(line.slice(4).split('\t')[0])
       else if (line.startsWith('+++ ') && line !== '+++ /dev/null')
-        file.path = unquote(line.slice(4).replace(/^b\//, ''))
+        file.path = prefixedPath(line.slice(4).split('\t')[0])
       continue
     }
     if (line.startsWith('+')) {

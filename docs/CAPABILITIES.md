@@ -1,16 +1,16 @@
-# Native runtime capabilities — v0.4.0
+# Native runtime capabilities — v0.13.0
 
 AgentHub 保留每家真正 Coding Runtime，沒有把它們降成純聊天模型。模型、帳號、CLI 版本和原生政策仍會影響可用工具；錯誤顯示於訊息及 Activity，不能假稱成功。Claude/Antigravity 的原生 init 工具清單另記錄為 `session.capabilities`，不擷取私人推理。
 
-| 能力 | Codex App Server | Claude Code native / SDK | Antigravity CLI |
-|---|---|---|---|
-| 讀取本機資料 | 指派工作區及原生 sandbox | 原生 Read/Glob/Grep，Host canonical 邊界檢查；native --restricted | native read_file/list/search，逐回合批准工作區 |
-| 寫檔 | 原生 patch/file tools + native approval | Write/Edit/NotebookEdit，逐工具批准 | 工作區 write_file(.)，唯讀 Review 禁止 |
-| 本地圖像 | 原生 localImage | 原生 base64 image content；Read 工具也保留 | 工作區暫存原檔 + 影像原生 read_file，確認工具成功後接受結果 |
-| Shell / 測試工具 | 原生工具 + 單次批准 | Bash 單次批准；唯讀 Review 禁止 | 設定確切 command 清單，逐回合批准；保留 native sandbox |
-| 網路研究 | 每回合批准後 web_search=live；拒絕仍可本機工作 | WebSearch/WebFetch 恢復到明確工具清單，逐工具批准 | 保留原生 search_web；原生 URL/command 網路 grant 使用設定的 domain 清單 |
-| 額外網路權限 | 支援原生 permissions/requestApproval 的 network.enabled，僅 turn scope；不附帶擴大檔案權限 | 依原生工具權限及使用者審核 Shell | read_url(domain) 套用 sandbox 網路 allowlist；不允許未沙盒執行 |
-| 協作 | 原生 dynamic tool | Host HTTP MCP / SDK MCP | JSON Schema bridge；Host 資料以同 Session 最多三次原生續接回傳 |
+| 能力             | Codex App Server                                                                           | Claude Code native / SDK                                          | Antigravity CLI                                                         |
+| ---------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| 讀取本機資料     | 指派工作區及原生 sandbox                                                                   | 原生 Read/Glob/Grep，Host canonical 邊界檢查；native --restricted | native read_file/list/search，逐回合批准工作區                          |
+| 寫檔             | 原生 patch/file tools + native approval                                                    | Write/Edit/NotebookEdit，逐工具批准                               | 工作區 write_file(.)，唯讀 Review 禁止                                  |
+| 本地圖像         | 原生 localImage                                                                            | 原生 base64 image content；Read 工具也保留                        | 工作區暫存原檔 + 影像原生 read_file，確認工具成功後接受結果             |
+| Shell / 測試工具 | 原生工具 + 單次批准                                                                        | Bash 單次批准；唯讀 Review 禁止                                   | 設定確切 command 清單，逐回合批准；保留 native sandbox                  |
+| 網路研究         | 每回合批准後 web_search=live；拒絕仍可本機工作                                             | WebSearch/WebFetch 恢復到明確工具清單，逐工具批准                 | 保留原生 search_web；原生 URL/command 網路 grant 使用設定的 domain 清單 |
+| 額外網路權限     | 支援原生 permissions/requestApproval 的 network.enabled，僅 turn scope；不附帶擴大檔案權限 | 依原生工具權限及使用者審核 Shell                                  | read_url(domain) 套用 sandbox 網路 allowlist；不允許未沙盒執行          |
+| 協作             | 原生 dynamic tool                                                                          | Host HTTP MCP / SDK MCP                                           | JSON Schema bridge；Host 資料以同 Session 最多三次原生續接回傳          |
 
 ## 使用方式
 
@@ -30,3 +30,7 @@ Shell 與專案測試可執行專案程式，仍需審閱命令；Host 的檔案
 - 真實打包版：`scripts/live-images.ts`、`scripts/live-web.ts`、`scripts/packaged-team-chat.ts`，只送生成圖像及 example.com 公開請求，不傳送專案秘密。報告含 app.asar 雜湊。
 - 真實原生檔案/Session：`scripts/live.ts`；AGY 網路終端：`npx tsx scripts/live-antigravity-command.ts --web`。
 - [AGY Headless protocol](https://antigravity.google/docs/cli/headless/)、[AGY permission rules](https://antigravity.google/docs/permissions)、[Claude tools/restricted flags](https://code.claude.com/docs/en/cli-reference)、[Codex config](https://learn.chatgpt.com/docs/config-file/config-reference)。Codex permission grant 使用本機 0.166.0 產生的 App Server schema；其他版本需通過相容檢查。
+
+## 公開串流與額度
+
+AGY 1.5.1+ 只串流公開 ACTIVE agent_response，DONE／reasoning／路由 JSON 不公開。Host 續接清除暫時文字，最後以驗證答案取代。官方獨立 /usage 要求 SUCCESS、num_turns=0；不符合不推算。三家完整模型／工具仍依實際 CLI 帳號與版本。

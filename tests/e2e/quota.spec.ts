@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path'
 import { Store } from '../../src/main/database/store'
 import type { AgentProfile } from '../../src/shared/types'
 
-test('quota UI distinguishes unsupported API/headless balances without using paid runtimes', async () => {
+test('quota UI keeps unsupported Claude API balance separate without using paid runtimes', async () => {
   const base = resolve('.local/e2e-quota')
   await mkdir(base, { recursive: true })
   const profile = await mkdtemp(join(base, 'profile-')),
@@ -15,7 +15,7 @@ test('quota UI distinguishes unsupported API/headless balances without using pai
   for (const agent of seed.list<AgentProfile>('agents'))
     seed.put('agents', {
       ...agent,
-      enabled: agent.provider !== 'codex',
+      enabled: agent.provider === 'claude',
       ...(agent.provider === 'claude' ? { authMode: 'api' } : {}),
     })
   seed.close()
@@ -29,11 +29,10 @@ test('quota UI distinguishes unsupported API/headless balances without using pai
     const page = await app.firstWindow()
     await page.getByLabel('Remaining quota', { exact: true }).click()
     const details = page.getByLabel('Quota details', { exact: true })
-    await expect(details.locator('article')).toHaveCount(2)
+    await expect(details.locator('article')).toHaveCount(1)
     await expect(details.locator('[data-provider="claude"]')).toContainText(
       'API-key billing is separate',
     )
-    await expect(details.locator('[data-provider="antigravity"]')).toContainText('/usage')
     await expect(details.locator('progress')).toHaveCount(0)
     await page.getByLabel('Refresh quota', { exact: true }).click()
     const value = await page.evaluate(() =>

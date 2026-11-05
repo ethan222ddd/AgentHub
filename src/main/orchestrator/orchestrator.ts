@@ -180,6 +180,8 @@ export class Orchestrator {
         | 'plan'
         | 'team'
         | 'autoFix'
+        | 'pullRequest'
+        | 'source'
       >
     > = {},
   ): Task {
@@ -347,6 +349,7 @@ export class Orchestrator {
       {
         store: this.store,
         dedupe: this.dedupe,
+        automatic: this.automatic,
         changed: () => this.changed(),
         publish: (event) => this.publish(event),
         turnCount: (id) => this.turnCount(id),
@@ -863,6 +866,8 @@ export class Orchestrator {
         {
           ...(override ? { autoFix: override.autoFix } : {}),
           ...(task.team ? { team: task.team } : {}),
+          ...(task.pullRequest ? { pullRequest: task.pullRequest } : {}),
+          ...(task.source ? { source: task.source } : {}),
           workspaceId: task.kind === 'review' || !handoff ? task.workspaceId : undefined,
           kind: task.kind,
           reviewId: task.reviewId,

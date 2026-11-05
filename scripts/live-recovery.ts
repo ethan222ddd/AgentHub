@@ -55,7 +55,7 @@ try {
     (settings) =>
       window.agenthub.invoke({
         op: 'settings.save',
-        settings: { ...settings, maxUsageTokens: 1000000 },
+        settings: { ...settings, autonomy: 'ask', maxUsageTokens: 1000000 },
       }),
     s.settings,
   )

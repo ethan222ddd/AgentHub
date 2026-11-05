@@ -147,6 +147,8 @@ export interface GitHubIssue {
   updatedAt: string
 }
 export interface PullRequestPreview {
+  id: string
+  revision: string
   repo: string
   base: string
   branch: string
@@ -405,7 +407,7 @@ export type AppEvent =
   | { type: 'navigate'; conversationId: string }
   | { type: 'notification-error'; message: string }
   | { type: 'changed' }
-  | { type: 'delta'; messageId: string; conversationId: string; delta: string }
+  | { type: 'delta'; messageId: string; conversationId: string; delta: string; replace?: boolean }
   | { type: 'activity'; activity: Activity }
   | { type: 'approvals'; approvals: Approval[] }
 export interface Bridge {

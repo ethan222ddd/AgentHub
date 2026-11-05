@@ -686,23 +686,11 @@ export class AutomaticProjects {
     }
   }
   private async runTest(workspace: Workspace, kind: 'test' | 'install', signal: AbortSignal) {
-    const autonomous = this.store.settings().autonomy === 'auto'
-    const result = await this.runOnce(workspace, kind, signal, true)
-    if (result.status === 'passed') return
-    const output = `${result.error || ''}\n${result.logs}`
-    // Toolchains such as Vite/Vitest start esbuild child processes that the Windows sandbox
-    // denies. With autonomy on, rerun the same fixed npm script directly on the exact snapshot.
-    if (autonomous && /EPERM/.test(output)) {
-      this.audit(workspace.projectId, `test.host-fallback.${kind}`, 'started', workspace.id)
-      const host = await this.runOnce(workspace, kind, signal, false)
-      if (host.status === 'passed') return
-      if (kind === 'test' && /No test files found/i.test(host.logs)) return this.noTests(workspace)
-      throw new Error(host.error || 'Integration snapshot tests failed (host run)')
-    }
-    // A project that has a test runner but no tests yet must not block the first integration.
-    if (kind === 'test' && autonomous && /No test files found/i.test(output))
-      return this.noTests(workspace)
-    throw new Error(result.error || 'Integration snapshot tests failed')
+    // Project output is untrusted: it cannot authorize Host execution or change a failed
+    // exit into a successful check. Automatic fixes may adjust the project and retry safely.
+    const result = await this.runOnce(workspace, kind, signal)
+    if (result.status !== 'passed')
+      throw new Error(result.error || 'Integration snapshot tests failed')
   }
   /**
    * Build output that agents leave behind (tsc -b, vite build, npm install) is neither source
@@ -761,31 +749,13 @@ export class AutomaticProjects {
       ),
     )
   }
-  /** Records, under an explicit name, that the snapshot had no tests at all; nothing ran. */
-  private async noTests(workspace: Workspace) {
-    this.store.put('test_runs', {
-      execution: 'static',
-      id: randomUUID(),
-      projectId: workspace.projectId,
-      workspaceId: workspace.id,
-      revision: await git(workspace.path, ['rev-parse', 'HEAD']),
-      kind: 'test',
-      name: '沒有測試檔：未執行任何測試（全自動模式允許先整合） / No test files: nothing was executed',
-      status: 'passed',
-      startedAt: new Date().toISOString(),
-      durationMs: 0,
-      logs: 'The test runner found no test files. Autonomous mode lets the first integration proceed; no behavior was verified.',
-    } satisfies TestRun)
-    this.changed()
-  }
   private async runOnce(
     workspace: Workspace,
     kind: 'test' | 'install',
     signal: AbortSignal,
-    sandboxed: boolean,
   ): Promise<TestRun> {
     signal.throwIfAborted()
-    const run = await this.tests.run(workspace, kind, sandboxed)
+    const run = await this.tests.run(workspace, kind, true)
     const abort = () => {
       void this.tests.cancel(run.id)
     }

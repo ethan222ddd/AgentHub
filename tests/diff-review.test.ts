@@ -98,4 +98,54 @@ describe('diff review', () => {
     expect(parseUnifiedDiff(since.diff)[0]).toMatchObject({ path: 'README.md', additions: 1 })
     await expect(manager.diff(workspace, 'HEAD; rm -rf')).rejects.toThrow(/Invalid revision/)
   })
+
+  it('decodes real Git UTF-8 octal paths before attaching line comments', async () => {
+    const root = await repository()
+    const name = '測試 with spaces.ts'
+    await writeFile(join(root, name), 'export const value = 1\n')
+    await git(root, ['add', '--', name])
+    await git(root, [
+      '-c',
+      'user.name=Test',
+      '-c',
+      'user.email=test@local.invalid',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '-qm',
+      'Unicode fixture',
+    ])
+    await writeFile(join(root, name), 'export const value = 2\n')
+    const raw = await git(root, ['-c', 'core.quotePath=true', 'diff', 'HEAD', '--'])
+    expect(raw).toContain('\\346')
+    const [file] = parseUnifiedDiff(raw)
+    expect(file.path).toBe(name)
+    const added = file.lines.find((line) => line.kind === 'add')!
+    expect(added.newLine).toBe(1)
+    const feedback = await diffFeedbackMessage(
+      { id: 'w', projectId: 'p', agentId: 'codex', branch: 'fixture', path: root },
+      [{ file: file.path, line: added.newLine!, content: 'Please review this value' }],
+    )
+    expect(feedback).toContain(`${name}:1`)
+  })
+
+  it('handles quoted renamed, deleted and binary paths without losing escapes', () => {
+    const quoted = '"b/\\346\\270\\254\\350\\251\\246.ts"'
+    expect(
+      parseUnifiedDiff(
+        `diff --git "a/old.ts" ${quoted}\nrename from old.ts\nrename to "\\346\\270\\254\\350\\251\\246.ts"`,
+      )[0],
+    ).toMatchObject({ path: '測試.ts', status: 'renamed' })
+    expect(
+      parseUnifiedDiff(
+        `diff --git "a/old\\tname.ts" "b/old\\tname.ts"\ndeleted file mode 100644\n--- "a/old\\tname.ts"\n+++ /dev/null\n@@ -1 +0,0 @@\n-old`,
+      )[0],
+    ).toMatchObject({ path: 'old\tname.ts', status: 'deleted' })
+    const binaryPath = 'quote"name\\.png'
+    expect(
+      parseUnifiedDiff(
+        `diff --git ${JSON.stringify('a/' + binaryPath)} ${JSON.stringify('b/' + binaryPath)}\nBinary files differ`,
+      )[0],
+    ).toMatchObject({ path: binaryPath, status: 'binary' })
+  })
 })

@@ -33,8 +33,20 @@ try {
       refresh,
     )
   const first = await read()
-  for (const provider of ['codex', 'claude']) {
+  console.log(
+    JSON.stringify(
+      first.map(({ provider, status, detail, windows }) => ({ provider, status, detail, windows })),
+    ),
+  )
+  for (const provider of ['codex', 'claude', 'antigravity']) {
     const q = first.find((q) => q.provider === provider)!
+    if (provider === 'claude' && q.status === 'unavailable') {
+      // The official CLI may expose usage scope but return rate_limits:null.
+      // Accept only the honest, explicit no-balance state; never fabricate a number.
+      expect(q.windows).toHaveLength(0)
+      expect(q.detail).toContain('Subscription limits unavailable')
+      continue
+    }
     expect(q.status).toBe('available')
     expect(
       q.windows.some(
@@ -42,7 +54,6 @@ try {
       ),
     ).toBe(true)
   }
-  expect(first.find((q) => q.provider === 'antigravity')?.status).toBe('unavailable')
   await page.getByLabel('Remaining quota', { exact: true }).click()
   await expect(page.locator('.quota-menu progress').first()).toBeVisible({ timeout: 30000 })
   await page.screenshot({ path: join(base, 'quota-live.png') })
@@ -75,6 +86,8 @@ try {
           .digest('hex'),
         noModelTurns: true,
         foregroundAutoRefresh: true,
+        availableProviders: last.filter((q) => q.status === 'available').map((q) => q.provider),
+        unavailableProviders: last.filter((q) => q.status === 'unavailable').map((q) => q.provider),
         quotas: last,
         checkedAt: new Date().toISOString(),
       },
