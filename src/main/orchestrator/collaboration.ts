@@ -156,6 +156,31 @@ export async function deliverCollaboration(
     host.publish({ type: 'activity', activity })
     return artifact
   }
+  if (input.operation === 'submit_review' && !task.reviewId) {
+    // A tester/reviewer on an ordinary task reporting findings: share them with the team
+    // instead of failing the whole turn (and losing its work) over the operation name.
+    const findings = (input.comments || [])
+      .map((c) => `- [${c.severity}] ${c.file}:${c.line} ${c.content}`)
+      .join('\n')
+    host.store.put('messages', {
+      id: randomUUID(),
+      projectId: task.projectId,
+      conversationId: task.conversationId,
+      senderId: task.agentId,
+      recipientIds: input.recipients.length ? input.recipients : ['user'],
+      content: `Review report${input.verdict ? ` (${input.verdict})` : ''}:\n${input.content}${findings ? `\n${findings}` : ''}`,
+      type: 'collaboration',
+      timestamp: new Date().toISOString(),
+      taskId: task.id,
+      correlationId: task.correlationId,
+      delivery: 'completed',
+    } satisfies Message)
+    host.changed()
+    return {
+      recorded: true,
+      note: 'Recorded as a review report for the team. To get fixes, assign_task the owning agent with the exact findings.',
+    }
+  }
   if (input.operation === 'submit_review') {
     if (!task.reviewId || !input.verdict)
       throw new Error('A structured review task and verdict are required')

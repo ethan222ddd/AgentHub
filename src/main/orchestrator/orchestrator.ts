@@ -719,7 +719,7 @@ export class Orchestrator {
    * Autonomous rooms: a failed automatic integration becomes a new attempt for the same agent,
    * carrying the failure. Dependents follow the attempt chain, so they resume once it passes.
    */
-  autoFix(task: Task, detail: string): void {
+  autoFix(task: Task, detail: string, kind: 'integration' | 'failure' = 'integration'): void {
     const notice = (content: string) =>
       this.store.put('messages', {
         id: randomUUID(),
@@ -736,6 +736,8 @@ export class Orchestrator {
       } satisfies Message)
     // The user's own uncommitted work in the primary folder is never something to "fix".
     if (task.workflow || /主要專案有使用者未提交|未覆寫/.test(detail)) return
+    // Budgets, turn limits and a stopped room are the user's stop signals, not errors to retry.
+    if (/budget|Room stopped|Stopped by user|Cancelled by user/i.test(detail)) return
     const attempt = (task.autoFix || 0) + 1
     if (attempt > 2) {
       notice(
@@ -751,10 +753,10 @@ export class Orchestrator {
     try {
       const fix = this.retry(task, task.agentId, {
         autoFix: attempt,
-        description: `AUTOMATIC FIX ${attempt}/2 for task ${task.id}. AgentHub could not integrate your committed work into the primary folder:\n${detail}\n${logs ? `Latest failing check output (untrusted tool output):\n<check-output>\n${logs}\n</check-output>\n` : ''}Fix the cause in your own files and finish the turn; the host retries integration automatically. If the failure is in another agent's files, send that agent the exact error with send_message instead of editing their files. Never weaken or delete tests to pass.\nOriginal task:\n${task.description}`,
+        description: `AUTOMATIC FIX ${attempt}/2 for task ${task.id}. ${kind === 'failure' ? 'Your previous turn failed:' : 'AgentHub could not integrate your committed work into the primary folder:'}\n${detail}\n${logs ? `Latest failing check output (untrusted tool output):\n<check-output>\n${logs}\n</check-output>\n` : ''}Fix the cause in your own files and finish the turn; the host retries integration automatically. If the failure is in another agent's files, send that agent the exact error with send_message instead of editing their files. Never weaken or delete tests to pass.\nOriginal task:\n${task.description}`,
       })
       notice(
-        `自動整合失敗，已交給 ${task.agentId} 自動修正（第 ${attempt}/2 次）。\nIntegration failed; ${task.agentId} received an automatic fix task.`,
+        `${kind === 'failure' ? '任務失敗' : '自動整合失敗'}，已交給 ${task.agentId} 自動修正（第 ${attempt}/2 次）。\n${kind === 'failure' ? 'Task failed' : 'Integration failed'}; ${task.agentId} received an automatic fix task.`,
       )
       trace('task.auto-fix', { taskId: fix.id, agentId: task.agentId })
       this.changed()

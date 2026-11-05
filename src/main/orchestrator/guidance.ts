@@ -69,7 +69,7 @@ function autonomousRules(provider?: string): string {
     'When your turn ends the host commits, tests and integrates your workspace into the primary folder; teammates receive it at the start of their next task. Do not recreate files another agent owns; if you need something from them, send_message or assign_task to that agent.',
     "If a test fails in another agent's files, assign_task to that agent with the exact error. Fix failures in your own files yourself. Never weaken or delete tests to make them pass.",
     provider === 'antigravity'
-      ? 'Antigravity: only these exact commands are permitted: npm install, npm ci, npm test, npm run test, npm run build, npx vitest run, npx tsc --noEmit, git status, git diff, git log --oneline -5 (plus any your profile lists). Any other run_command is denied, so explore with list_dir, read_file and grep_search and do not retry a denied command.'
+      ? 'Antigravity: on Windows use npm.cmd / npx.cmd (PowerShell blocks npm.ps1). Only these exact commands are permitted: npm.cmd install, npm.cmd ci, npm.cmd test, npm.cmd run test, npm.cmd run build, npx.cmd vitest run, npx.cmd tsc --noEmit, git status, git diff, git log --oneline -5 (plus the same without .cmd and any your profile lists). Any other run_command is denied, so explore with list_dir, read_file and grep_search and do not retry a denied command.'
       : '',
   ]
     .filter(Boolean)

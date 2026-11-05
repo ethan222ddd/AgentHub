@@ -24,6 +24,14 @@ import { taskGuidance } from './guidance'
 
 import type { RunContext } from '../agents/adapter'
 export const AUTONOMOUS_AGY_COMMANDS = [
+  // Windows PowerShell blocks the npm.ps1/npx.ps1 shims; the .cmd shims run under any policy.
+  'npm.cmd install',
+  'npm.cmd ci',
+  'npm.cmd test',
+  'npm.cmd run test',
+  'npm.cmd run build',
+  'npx.cmd vitest run',
+  'npx.cmd tsc --noEmit',
   'npm install',
   'npm ci',
   'npm test',
@@ -63,7 +71,7 @@ export interface TurnHost {
   ): Promise<boolean>
   collaborate(task: Task, input: CollaborationInput, signal: AbortSignal): Promise<unknown>
   integrationMessage(task: Task, integration: NonNullable<Task['integration']>): void
-  autoFix(task: Task, detail: string): void
+  autoFix(task: Task, detail: string, kind?: 'integration' | 'failure'): void
   requestReview(
     workspaceId: string,
     conversationId: string,
@@ -501,6 +509,13 @@ export async function executeTurn(
       error: redact(String(controller.signal.reason || e)),
       completedAt: new Date().toISOString(),
     })
+    // Autonomous rooms give a failed turn back to the same agent with the error (bounded).
+    if (status === 'failed' && !host.isClosing() && host.store.settings().autonomy === 'auto')
+      host.autoFix(
+        host.store.require<Task>('tasks', task.id),
+        redact(String(controller.signal.reason || e)),
+        'failure',
+      )
   } finally {
     clearTimeout(timeout)
     clearTimeout(persistTimer)

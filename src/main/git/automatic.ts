@@ -14,6 +14,7 @@ import {
   assertSafeGitAttributes,
 } from './safe-snapshot'
 import { TestRunner } from '../tasks/tests'
+import { exec, findRuntime } from '../agents/process'
 import { assertAssignedRoot, withinWorkspace } from '../permissions/paths'
 
 type Ask = (tool: string, detail: string, risk?: string) => Promise<boolean>
@@ -416,6 +417,7 @@ export class AutomaticProjects {
               '工作區原先已有未完成修改，已保留全部內容。請先檢查 Diff，再明確重試整合；不會自動混入發佈。',
           }
         }
+        if (this.store.settings().autonomy === 'auto') await this.ensureLockfile(workspace, signal)
         const scan = await scanFiles(workspace.path, await changedFiles(workspace.path))
         if (scan.excluded.length || scan.review.length)
           throw new Error(
@@ -698,6 +700,45 @@ export class AutomaticProjects {
     if (kind === 'test' && autonomous && /No test files found/i.test(output))
       return this.noTests(workspace)
     throw new Error(result.error || 'Integration snapshot tests failed')
+  }
+  /**
+   * Integration installs from a committed lockfile. When an agent added npm dependencies but no
+   * lockfile, resolve one (no install scripts, public registry only) so tests can run.
+   */
+  private async ensureLockfile(workspace: Workspace, signal: AbortSignal) {
+    const manifestPath = join(workspace.path, 'package.json')
+    if (!existsSync(manifestPath) || existsSync(join(workspace.path, 'package-lock.json'))) return
+    if (existsSync(join(workspace.path, '.npmrc'))) return
+    const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as {
+      dependencies?: object
+      devDependencies?: object
+    }
+    if (!Object.keys({ ...manifest.dependencies, ...manifest.devDependencies }).length) return
+    const node = await findRuntime('node')
+    const npm = node && join(dirname(node), 'node_modules', 'npm', 'bin', 'npm-cli.js')
+    if (!node || !npm || !existsSync(npm)) return
+    signal.throwIfAborted()
+    this.audit(workspace.projectId, 'dependencies.lockfile', 'started', workspace.id)
+    await exec(
+      node,
+      [
+        npm,
+        'install',
+        '--package-lock-only',
+        '--ignore-scripts',
+        '--no-audit',
+        '--no-fund',
+        '--registry=https://registry.npmjs.org/',
+      ],
+      { cwd: workspace.path, windowsHide: true, timeout: 300000, maxBuffer: 8 * 1024 * 1024 },
+    ).catch((error) =>
+      this.audit(
+        workspace.projectId,
+        'dependencies.lockfile',
+        'failed',
+        String((error as Error).message).slice(0, 300),
+      ),
+    )
   }
   /** Records, under an explicit name, that the snapshot had no tests at all; nothing ran. */
   private async noTests(workspace: Workspace) {

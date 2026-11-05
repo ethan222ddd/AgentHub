@@ -186,3 +186,55 @@ describe('autonomous team run', () => {
     await o.dispose()
   })
 })
+
+describe('review findings from an ordinary task', () => {
+  it('are shared as a review report instead of failing the turn', async () => {
+    const { deliverCollaboration } = await import('../src/main/orchestrator/collaboration')
+    const store = new Store(':memory:')
+    const p = store.addProject(await directory('review-report-'), 'Repo')
+    const c = store.snapshot().conversations[0]
+    const task: Task = {
+      id: 'qa',
+      projectId: p.id,
+      conversationId: c.id,
+      agentId: 'antigravity',
+      name: 'QA',
+      description: '',
+      status: 'running',
+      dependencies: [],
+      createdAt: new Date().toISOString(),
+      correlationId: 'x',
+      depth: 1,
+    }
+    store.put('tasks', task)
+    const host = {
+      store,
+      dedupe: new Set<string>(),
+      changed() {},
+      publish() {},
+      turnCount: () => 0,
+      ask: async () => true,
+      enqueue: () => task,
+      pump() {},
+    }
+    const result = await deliverCollaboration(
+      host,
+      task,
+      {
+        operation: 'submit_review',
+        recipients: ['codex'],
+        content: 'Storage ignores corrupt JSON correctly.',
+        dependencies: [],
+        verdict: 'changes_requested',
+        comments: [
+          { file: 'src/App.tsx', line: 12, severity: 'warning', content: 'Missing label' },
+        ],
+      },
+      new AbortController().signal,
+    )
+    expect(result).toMatchObject({ recorded: true })
+    const report = store.list<Message>('messages').find((m) => m.senderId === 'antigravity')!
+    expect(report.recipientIds).toEqual(['codex'])
+    expect(report.content).toContain('[warning] src/App.tsx:12 Missing label')
+  })
+})
