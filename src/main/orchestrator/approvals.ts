@@ -43,6 +43,7 @@ export class ApprovalQueue {
           detail: redact(detail).slice(0, 16000),
           risk,
           canRemember,
+          requestedAt: new Date().toISOString(),
         },
         resolve: (allow) => {
           signal.removeEventListener('abort', onAbort)

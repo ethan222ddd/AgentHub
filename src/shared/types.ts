@@ -123,6 +123,8 @@ export interface Activity {
   timestamp: string
 }
 export interface Approval {
+  /** When the host started waiting; optional because older events lack it. */
+  requestedAt?: string
   canRemember?: boolean
   id: string
   agentId: string

@@ -19,6 +19,7 @@ import { ChatComposer } from './features/chat/ChatComposer'
 import { MessageList } from './features/chat/MessageList'
 import { Sidebar } from './features/chat/Sidebar'
 import { WorkspaceHeader } from './features/chat/WorkspaceHeader'
+import { ApprovalQueue } from './features/ApprovalQueue'
 import { Settings } from './features/Settings'
 import { SidePanel } from './features/SidePanel'
 import { TeamEditor } from './features/TeamEditor'
@@ -48,6 +49,7 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [teamOpen, setTeamOpen] = useState(false)
   const [workflowOpen, setWorkflowOpen] = useState(false)
+  const [queueOpen, setQueueOpen] = useState(false)
   const [panel, setPanel] = useState('')
   const [input, setInput] = useState('')
   const [recipients, setRecipients] = useState<string[]>([])
@@ -130,6 +132,10 @@ export function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault()
         setSearchOpen((v) => !v)
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault()
+        setQueueOpen(true)
       }
       if (e.key === 'Escape') {
         setPanel('')
@@ -281,6 +287,8 @@ export function App() {
           setTeamOpen={setTeamOpen}
           panel={panel}
           setPanel={setPanel}
+          pendingApprovals={approvals.length}
+          openQueue={() => setQueueOpen(true)}
         />
         {snapshot.conversations
           .filter(
@@ -536,6 +544,7 @@ export function App() {
               allUsage={snapshot.usage}
               allTasks={snapshot.tasks}
               conversations={snapshot.conversations}
+              openQueue={() => setQueueOpen(true)}
             />
           )}
         </div>
@@ -560,6 +569,22 @@ export function App() {
             setPanel('activity')
             setInput('')
           }}
+        />
+      )}
+      {queueOpen && (
+        <ApprovalQueue
+          approvals={approvals}
+          conversations={snapshot.conversations}
+          projects={snapshot.projects}
+          agents={snapshot.agents}
+          currentConversationId={conversationId}
+          en={en}
+          perform={perform}
+          openRoom={(id) => {
+            setQueueOpen(false)
+            void load(id).then(() => setPanel('activity'))
+          }}
+          close={() => setQueueOpen(false)}
         />
       )}
       {teamOpen && project && (

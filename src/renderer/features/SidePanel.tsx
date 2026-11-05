@@ -1,4 +1,4 @@
-import { AlertTriangle, X } from 'lucide-react'
+import { ListChecks, ShieldAlert, X } from 'lucide-react'
 import { useState } from 'react'
 import type {
   Activity,
@@ -42,6 +42,7 @@ export function SidePanel({
   allUsage,
   allTasks,
   conversations,
+  openQueue,
 }: {
   tab: string
   setTab(tab: string): void
@@ -63,6 +64,7 @@ export function SidePanel({
   allUsage: UsageRecord[]
   allTasks: Task[]
   conversations: Conversation[]
+  openQueue(): void
 }) {
   const [workspaceId, setWorkspaceId] = useState(workspaces[0]?.id || '')
   const [diff, setDiff] = useState<Diff>()
@@ -132,46 +134,64 @@ export function SidePanel({
         </Button>
       </header>
       <div className="panel-body">
-        {approvals.map((a) => (
-          <section className="approval" key={a.id}>
-            <div>
-              <AlertTriangle size={16} />
-              <strong>
-                {agents.find((x) => x.id === a.agentId)?.name} ·{' '}
-                {text('等待批准', 'Approval needed')}
-              </strong>
-            </div>
-            <b>{a.tool}</b>
-            <pre>{a.detail}</pre>
-            <small>{a.risk}</small>
-            <div className="actions">
-              <Button
-                size="sm"
-                onClick={() => void perform({ op: 'approve', id: a.id, allow: true })}
-              >
-                {text('允許一次', 'Allow once')}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => void perform({ op: 'approve', id: a.id, allow: false })}
-              >
-                {text('拒絕', 'Deny')}
-              </Button>
-              {a.canRemember && (
+        {(approvals.length > 1 || (approvals.length > 0 && tab !== 'activity')) && (
+          <button className="queue-banner" onClick={openQueue}>
+            <ListChecks size={15} />
+            <span>
+              {text(
+                `${approvals.length} 筆操作等待批准`,
+                `${approvals.length} ${approvals.length > 1 ? 'requests are' : 'request is'} waiting`,
+              )}
+            </span>
+            <span className="queue-banner-action">
+              {text('逐筆處理', 'Review')} <kbd>Ctrl</kbd>
+              <kbd>Shift</kbd>
+              <kbd>A</kbd>
+            </span>
+          </button>
+        )}
+        {/* Full cards live in Activity; maps and charts keep their space with the banner. */}
+        {tab === 'activity' &&
+          approvals.map((a) => (
+            <section className="approval" key={a.id}>
+              <div>
+                <ShieldAlert size={15} />
+                <strong>
+                  {agents.find((x) => x.id === a.agentId)?.name}{' '}
+                  {text('等待批准', 'needs approval')}
+                </strong>
+              </div>
+              <b>{a.tool}</b>
+              <pre>{a.detail}</pre>
+              <small>{a.risk}</small>
+              <div className="actions">
+                <Button
+                  size="sm"
+                  onClick={() => void perform({ op: 'approve', id: a.id, allow: true })}
+                >
+                  {text('允許一次', 'Allow once')}
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() =>
-                    void perform({ op: 'approve', id: a.id, allow: true, remember: true })
-                  }
+                  onClick={() => void perform({ op: 'approve', id: a.id, allow: false })}
                 >
-                  {text('記憶本工作區讀取批准', 'Remember workspace read')}
+                  {text('拒絕', 'Deny')}
                 </Button>
-              )}
-            </div>
-          </section>
-        ))}
+                {a.canRemember && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      void perform({ op: 'approve', id: a.id, allow: true, remember: true })
+                    }
+                  >
+                    {text('記憶本工作區讀取批准', 'Remember workspace read')}
+                  </Button>
+                )}
+              </div>
+            </section>
+          ))}
         {tab === 'tasks' ? (
           <TaskMap
             tasks={tasks}

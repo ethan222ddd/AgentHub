@@ -1,4 +1,12 @@
-import { Activity as ActivityIcon, Bot, GitBranch, Network, PanelLeft, Workflow } from 'lucide-react'
+import {
+  Activity as ActivityIcon,
+  Bot,
+  GitBranch,
+  Network,
+  PanelLeft,
+  ShieldCheck,
+  Workflow,
+} from 'lucide-react'
 import type { Dispatch, SetStateAction } from 'react'
 import { taskStatusLabel } from '../../../shared/tasks'
 import type {
@@ -23,6 +31,8 @@ interface Props {
   setTeamOpen: Dispatch<SetStateAction<boolean>>
   panel: string
   setPanel: Dispatch<SetStateAction<string>>
+  pendingApprovals: number
+  openQueue(): void
 }
 export function WorkspaceHeader({
   project,
@@ -37,6 +47,8 @@ export function WorkspaceHeader({
   setTeamOpen,
   panel,
   setPanel,
+  pendingApprovals,
+  openQueue,
 }: Props) {
   return (
     <header className="workspace-header">
@@ -78,6 +90,19 @@ export function WorkspaceHeader({
         })}
       </div>
       <div className="header-actions">
+        {!!pendingApprovals && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="approval-trigger"
+            onClick={openQueue}
+            title={text('批准佇列（Ctrl+Shift+A）', 'Approval queue (Ctrl+Shift+A)')}
+          >
+            <ShieldCheck size={15} />
+            <span>{text('待批准', 'Approvals')}</span>
+            <b className="count">{pendingApprovals}</b>
+          </Button>
+        )}
         <Button
           size="sm"
           variant="ghost"
