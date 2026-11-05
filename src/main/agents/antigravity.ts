@@ -332,7 +332,9 @@ export class AntigravityAdapter implements AgentAdapter {
                 JSON.stringify({ round: round + 1, status: event.result.status }),
                 turnId(),
               )
-              if (event.result.status !== 'SUCCESS' || permissionDenied)
+              // A denied tool fails the turn unless the room is autonomous: then the denial stays in
+              // the activity log and the agent's successful result is kept.
+              if (event.result.status !== 'SUCCESS' || (permissionDenied && !ctx.tolerateDenials))
                 reject(
                   new Error(
                     event.result.error ||

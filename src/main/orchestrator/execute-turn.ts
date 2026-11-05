@@ -84,7 +84,10 @@ export async function executeTurn(
       '\nAgentHub automatically checks and integrates completed changes into the selected primary folder. For Node projects, provide a meaningful npm test script when implementing code. Never weaken tests merely to pass. Static HTML/CSS-only projects receive explicitly labelled basic static checks. Do not commit credentials. The host handles worktree setup and integration; do not reset, clean, force-push or manually change worktree registration.'
   // Antigravity runs only exactly listed commands; autonomous rooms give it the usual dev loop.
   if (host.store.settings().autonomy === 'auto' && agent.provider === 'antigravity') {
-    if (!agent.commandAllowlist?.length) agent.commandAllowlist = AUTONOMOUS_AGY_COMMANDS
+    // Union, so a profile's own list never hides the standard dev loop the prompt promises.
+    agent.commandAllowlist = [
+      ...new Set([...(agent.commandAllowlist || []), ...AUTONOMOUS_AGY_COMMANDS]),
+    ]
     if (!agent.networkAllowlist?.length) agent.networkAllowlist = ['registry.npmjs.org']
   }
   const adapter = host.adapters.get(agent.provider)
@@ -244,6 +247,8 @@ export async function executeTurn(
     const result = await adapter.run({
       images: new AttachmentStore(host.store).images(task.projectId, task.attachmentIds || []),
       readOnly: task.kind === 'review' || planning,
+      networkAccess: host.store.settings().autonomy === 'auto',
+      tolerateDenials: host.store.settings().autonomy === 'auto',
       maxCostUsd: host.remainingCost(task.conversationId),
       usage: (usage) =>
         host.recordUsage(
