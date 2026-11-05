@@ -17,13 +17,21 @@
 }
 .tabs {
   display: flex;
-  gap: 16px;
+  gap: 13px;
   align-self: stretch;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 .tabs > button {
   color: var(--muted);
   font-size: 13px;
   position: relative;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .tabs > button:hover {
   color: var(--text);

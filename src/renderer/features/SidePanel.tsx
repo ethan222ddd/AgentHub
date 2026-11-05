@@ -124,7 +124,7 @@ export function SidePanel({
     ['decisions', text('決策', 'Decisions')],
   ]
   return (
-    <aside className={`side-panel ${tab === 'tasks' || tab === 'usage' ? 'wide' : ''}`}>
+    <aside className={`side-panel ${['tasks', 'usage', 'changes'].includes(tab) ? 'wide' : ''}`}>
       <header>
         <div className="tabs" role="tablist">
           {tabs.map(([id, label]) => (
