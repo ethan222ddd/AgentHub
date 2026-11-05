@@ -6,7 +6,7 @@ AgentHub 讓你在同一聊天室指派真正的 Codex、Claude Code 與 Antigra
 
 ## 1. 安裝與事前準備
 
-在 `release/0.12.0` 找到 `AgentHub Setup 0.12.0.exe` 安裝，或使用 `AgentHub-0.12.0-portable.exe` 免安裝版。也可直接執行 `win-unpacked/AgentHub.exe`。Portable 預設把資料放在執行檔旁的 `AgentHubData`，請放在可寫入的資料夾。本版未簽章、沒有自動更新；請確認安裝檔來自你信任的來源。升級前先備份。
+在 `release/0.12.1` 找到 `AgentHub Setup 0.12.1.exe` 安裝，或使用 `AgentHub-0.12.1-portable.exe` 免安裝版。也可直接執行 `win-unpacked/AgentHub.exe`。Portable 預設把資料放在執行檔旁的 `AgentHubData`，請放在可寫入的資料夾。本版未簽章、沒有自動更新；請確認安裝檔來自你信任的來源。升級前先備份。
 
 AgentHub 不會代替你安裝或登入三家的 Coding Runtime。請先備妥：
 

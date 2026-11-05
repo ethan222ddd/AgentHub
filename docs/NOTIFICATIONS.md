@@ -27,6 +27,6 @@
 
 ## 驗證範圍
 
-此版依使用者要求採通知範圍驗證，不重跑三家付費代理或全套測試。控制器及原生介面單元測試使用受控 OS 替身；Electron E2E 使用真實 IPC／SQLite／Renderer，只有 OS 投遞端受控。原生打包煙霧另用真正 Windows API，`show` 事件代表系統已接受，不等於人工確認橫幅或滑鼠點擊。各項最終結果見 IMPLEMENTATION_STATUS 與 release/0.11.0/NOTIFICATION_VALIDATION.json；不把 v0.10.0 的代理報告當作新版二進位的驗收。
+此版依使用者要求採通知範圍驗證，不重跑三家付費代理或全套測試。控制器及原生介面單元測試使用受控 OS 替身；Electron E2E 使用真實 IPC／SQLite／Renderer，只有 OS 投遞端受控。原生打包煙霧另用真正 Windows API，`show` 事件代表系統已接受，不等於人工確認橫幅或滑鼠點擊。各項最終結果見 IMPLEMENTATION_STATUS（原 release/0.11.0/NOTIFICATION_VALIDATION.json 已於 2026-11-05 清理舊版時移除）；不把 v0.10.0 的代理報告當作新版二進位的驗收。
 
 官方介面依據：[Notification](https://www.electronjs.org/docs/latest/api/notification)、[Windows 通知條件](https://www.electronjs.org/docs/latest/tutorial/notifications#windows)、[工作列覆蓋圖示](https://www.electronjs.org/docs/latest/api/browser-window#winsetoverlayiconoverlay-description-windows)。

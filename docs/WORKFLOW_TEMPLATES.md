@@ -41,6 +41,6 @@
 
 Migration 8 增加 `workflow_templates`、`workflow_runs`。內建範本只在遷移時建立一次；使用者刪除後不會每次啟動又出現。舊版 App 會拒絕開啟 Schema 8，避免舊排程器把流程任務當成一般任務整合；升級前先備份。
 
-本階段僅跑範本、任務依賴／恢復、Review gate、SQLite／備份及單一 Electron 範本 E2E。代理用受控 Fixture Adapter，Git、Worktree、結構化產物、快照、Review gate 與快照測試實際執行；測試沙盒是明確的 Fixture，不宣稱正式 OS 沙盒驗收。打包版 E2E 驗證 UI／IPC／SQLite 與重啟，不產生模型回合。未重跑三家付費 Live 或整套回歸，最終範圍見 release/0.12.0/WORKFLOW_VALIDATION.json。
+本階段僅跑範本、任務依賴／恢復、Review gate、SQLite／備份及單一 Electron 範本 E2E。代理用受控 Fixture Adapter，Git、Worktree、結構化產物、快照、Review gate 與快照測試實際執行；測試沙盒是明確的 Fixture，不宣稱正式 OS 沙盒驗收。打包版 E2E 驗證 UI／IPC／SQLite 與重啟，不產生模型回合。未重跑三家付費 Live 或整套回歸，最終範圍見 `.local/release-metadata/0.12.0/WORKFLOW_VALIDATION.json`（本機保存，不納入 Git）。
 
 主要修改：`src/shared/{types,schemas,workflows}.ts`、`src/main/{workflows/service,database/store,database/backup,orchestrator/orchestrator,git/automatic,ipc/handlers,index}.ts`、`src/renderer/{App.tsx,styles.css,features/WorkflowEditor.tsx}`；測試為 `tests/workflow-templates.test.ts`、`tests/e2e/workflow-templates.spec.ts` 與相關既有 gate／持久化測試。

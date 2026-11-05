@@ -62,4 +62,4 @@ Stop 取消佇列並終止子程序樹；已寫入檔案可能保留。重啟後
 
 設定 → 資料可備份、預覽還原、批准並在關閉重開後套用。原 DB/WAL/SHM 與還原前一致備份保留在使用者資料目錄；勿在 App 執行中手動覆蓋。SQLite 備份不包含 Worktree、供應商 Session 或 DPAPI 金鑰，跨機器 Session 不保證可繼續。
 
-使用 `release/0.7.0/AgentHub Setup 0.7.0.exe`、`AgentHub-0.7.0-portable.exe` 或直接執行 `win-unpacked/AgentHub.exe`。Portable 資料預設在旁邊的 AgentHubData，請選可寫位置並使用獨立的專案子資料夾。本版 Schema 7，較舊 App 拒絕開啟；安裝檔 unsigned，沒有自動更新。簽章需要發行者本機憑證；不要在聊天提供私鑰。安裝／升級實測範圍見 VALIDATION。
+使用 `release/0.12.1/AgentHub Setup 0.12.1.exe`、`AgentHub-0.12.1-portable.exe`，或以 `npm run package:dir` 重建後執行 `win-unpacked/AgentHub.exe`。Portable 資料預設在旁邊的 AgentHubData，請選可寫位置並使用獨立的專案子資料夾。本版 Schema 8，較舊 App 拒絕開啟；安裝檔 unsigned，沒有自動更新。簽章需要發行者本機憑證；不要在聊天提供私鑰。安裝／升級實測範圍見 VALIDATION。

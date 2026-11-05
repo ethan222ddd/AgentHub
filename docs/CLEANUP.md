@@ -1,5 +1,18 @@
 # 工作區清理 — 2026-11-02
 
+## 2026-11-05 v0.12.1 本機打包後
+
+原始碼已由 Git 追蹤（基準 `50090f7`），所以舊版打包不再是唯一的原始碼來源，本輪只保留最新交付。
+
+- **移除**：`release/` 下 0.2.0～0.11.0 的安裝檔、Portable、原始碼 ZIP、離線手冊、Manifest 與 SHA256SUMS，約 1.2 GB。0.12.0 的版本在清理當下仍在執行，所以先保留，關閉後即可刪除；它旁邊的 `AgentHubData` 是空的啟動測試資料（0 個專案）。
+- **移除**：`.local` 內可重建的 E2E 測試 Profile、截圖與暫存、過往回合的建置／安裝日誌，以及已收進維護證據 ZIP 的重複檔案，約 257 MB。`test-results/` 一併清除。
+- **保留**：五份 `maintenance-evidence-v*.zip`、兩份 cleanup 紀錄、未收進 ZIP 的通知／流程驗收 JSON，以及 `.local/release-metadata/0.12.0/`（0.12.0 的 WORKFLOW_VALIDATION.json 與 SHA256SUMS，雜湊已核對）。
+- **遺失紀錄**：`release/0.11.0/NOTIFICATION_VALIDATION.json` 沒有收進任何證據 ZIP，已隨 0.11.0 一起刪除，無法復原；該輪結果摘要仍在 IMPLEMENTATION_STATUS。
+- **新版交付**：`release/0.12.1` 只保留安裝檔、Portable、離線手冊與 SHA256SUMS。重複的 `win-unpacked`、未使用的自動更新檔（blockmap、latest.yml）與 builder 除錯檔已移除；Live 腳本需要解壓版時，以 `npm run package:dir` 重建。實際 Portable 煙霧驗收報告保存在 `.local/release-metadata/0.12.1/portable-smoke-report.json`。
+- **未變更**：`dist`、`.native`、`node_modules` 保留供開發使用。沒有刪除已安裝的 App、官方 CLI 帳號資料或工作區外的檔案。
+
+v0.2.0～v0.11.0 的原始碼只剩 Git 基準 `50090f7` 之前的維護證據 ZIP，不再有完整快照。以下為較早的清理紀錄，其中的保留清單已不代表目前磁碟狀態。
+
 ## 2026-11-04 v0.10.0 發行後續
 
 本輪維持只保留最新 v0.10.0 安裝／Portable／原始碼／手冊與 Manifest；v0.9.0 安裝檔已用於真實升級驗收，驗收後移除重複的舊版二進位，歷史原始碼與發行 metadata 保留。大型解壓版、Portable 測試複本、SQLite 測試 Profile、Git 測試工作樹及測試結果暫存可重建並已清理。
