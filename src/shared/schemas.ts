@@ -42,6 +42,7 @@ export const agentSchema = z
   .strict()
 export const settingsSchema = z
   .object({
+    autonomy: z.enum(['auto', 'ask']).default('auto'),
     notifications: z.enum(['all', 'approvals', 'off']).default('all'),
     theme: z.enum(['dark', 'light', 'system']),
     language: z.enum(['zh-TW', 'en']),

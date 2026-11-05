@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import type {
   AgentProfile,
   FileOverlap,
@@ -13,10 +14,15 @@ import { trace, traceError } from '../app/diagnostics'
 import { Store } from '../database/store'
 import { git } from './workspaces'
 
+export interface ChangedFile {
+  uncommitted: boolean
+  /** Git blob id of the working-tree content; 'deleted' when removed; absent if unknown. */
+  hash?: string
+}
 export interface WorkspaceChanges {
   workspaceId: string
   agentId: string
-  files: Map<string, boolean>
+  files: Map<string, ChangedFile>
 }
 
 /** Paths from `git status --porcelain=v1 -z`; a rename contributes its new path. */
@@ -40,7 +46,7 @@ export async function workspaceChanges(
   project: Project,
   workspace: Workspace,
 ): Promise<WorkspaceChanges> {
-  const files = new Map<string, boolean>()
+  const files = new Map<string, ChangedFile>()
   let base = ''
   if (workspace.syncedHead)
     base = await git(workspace.path, ['merge-base', '--is-ancestor', workspace.syncedHead, 'HEAD'])
@@ -56,26 +62,53 @@ export async function workspaceChanges(
     )
       .split('\0')
       .filter(Boolean))
-      files.set(path, false)
+      files.set(path, { uncommitted: false })
   for (const path of parsePorcelain(
     await git(workspace.path, ['status', '--porcelain=v1', '-z', '--untracked-files=all'], false),
   ))
-    files.set(path, true)
+    files.set(path, { uncommitted: true })
+  // Content hashes let identical copies (for example after a merge) stop counting as conflicts.
+  const present = [...files.keys()].filter((p) => existsSync(join(workspace.path, p)))
+  for (const p of files.keys()) if (!present.includes(p)) files.get(p)!.hash = 'deleted'
+  for (let i = 0; i < present.length; i += 50) {
+    const chunk = present.slice(i, i + 50)
+    const hashes = (await git(workspace.path, ['hash-object', '--', ...chunk]).catch(() => ''))
+      .split(/\r?\n/)
+      .filter(Boolean)
+    if (hashes.length === chunk.length) chunk.forEach((p, k) => (files.get(p)!.hash = hashes[k]))
+  }
   return { workspaceId: workspace.id, agentId: workspace.agentId, files }
 }
 
 export function findOverlaps(changes: WorkspaceChanges[]): FileOverlap[] {
-  const byPath = new Map<string, FileOverlap['agents']>()
+  const byPath = new Map<string, (FileOverlap['agents'][number] & { hash?: string })[]>()
   for (const change of changes)
-    for (const [path, uncommitted] of change.files) {
+    for (const [path, file] of change.files) {
       const list = byPath.get(path) || []
       if (!list.some((a) => a.agentId === change.agentId))
-        list.push({ agentId: change.agentId, workspaceId: change.workspaceId, uncommitted })
+        list.push({
+          agentId: change.agentId,
+          workspaceId: change.workspaceId,
+          uncommitted: file.uncommitted,
+          hash: file.hash,
+        })
       byPath.set(path, list)
     }
   return [...byPath]
-    .filter(([, agents]) => agents.length > 1)
-    .map(([path, agents]) => ({ path, agents }))
+    .filter(([, agents]) => {
+      if (agents.length < 2) return false
+      // Same bytes everywhere cannot conflict; unknown hashes are treated as different.
+      const hashes = agents.map((a) => a.hash)
+      return hashes.some((h) => !h) || new Set(hashes).size > 1
+    })
+    .map(([path, agents]) => ({
+      path,
+      agents: agents.map(({ agentId, workspaceId, uncommitted }) => ({
+        agentId,
+        workspaceId,
+        uncommitted,
+      })),
+    }))
     .sort((a, b) => a.path.localeCompare(b.path))
 }
 

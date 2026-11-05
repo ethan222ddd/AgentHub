@@ -1,4 +1,4 @@
-import type { Project, Task, TaskHandoff } from '../../shared/types'
+import type { AgentProfile, Project, Task, TaskHandoff } from '../../shared/types'
 import { Store } from '../database/store'
 import { isPlanning, latestAttempt } from '../../shared/tasks'
 import { acceptedDecisionsText } from './decisions'
@@ -18,13 +18,23 @@ export function taskGuidance(store: Store, task: Task, project: Project): string
       '\nPROJECT DECISIONS accepted by the user (follow them unless the current request explicitly changes one):' +
         fence('project-decisions', decisions),
     )
+  const autonomous = store.settings().autonomy === 'auto'
+  const provider = store.get<AgentProfile>('agents', task.agentId)?.provider
   parts.push(
-    '\nIf you make or need an architectural choice that future tasks should follow (naming, data model, library, API contract), call agenthub_collaborate with operation propose_decision, recipients [], decision = {title}, content = the rationale. It only applies after the user accepts it.',
+    autonomous
+      ? '\nIf you make or need an architectural choice that future tasks should follow (naming, data model, library, API contract), record it with agenthub_collaborate operation propose_decision, recipients [], decision = {title}, content = the rationale. In this autonomous room it is adopted immediately and given to every later task.'
+      : '\nIf you make or need an architectural choice that future tasks should follow (naming, data model, library, API contract), call agenthub_collaborate with operation propose_decision, recipients [], decision = {title}, content = the rationale. It only applies after the user accepts it.',
   )
   const current = store.get<Task>('tasks', task.id) || task
+  if (autonomous && !isPlanning(current)) parts.push(autonomousRules(provider))
+  if (current.team && current.team.lead === current.agentId && !isPlanning(current))
+    parts.push(leadProtocol(store, current))
   if (isPlanning(current)) {
     parts.push(
-      '\nPLANNING PHASE (host-enforced read-only): do not create, edit, delete, format or commit files, do not run commands that write, and do not delegate work. Inspect the repository with read-only tools, then call agenthub_collaborate with operation submit_plan, recipients [], content = a concise Markdown plan, and plan = {files: paths you expect to change, steps: ordered implementation steps, risks: what could break or is uncertain, verification: how you will prove it works}. Then end the turn. The user will approve, edit or request revisions before any change is made.',
+      '\nPLANNING PHASE (host-enforced read-only): do not create, edit, delete, format or commit files, do not run commands that write, and do not delegate work. Inspect the repository with read-only tools, then call agenthub_collaborate with operation submit_plan, recipients [], content = a concise Markdown plan, and plan = {files: paths you expect to change, steps: ordered implementation steps, risks: what could break or is uncertain, verification: how you will prove it works}. Then end the turn. The user will approve, edit or request revisions before any change is made.' +
+        (provider === 'antigravity'
+          ? ' Antigravity: every run_command is denied in this phase and a denied tool fails the whole turn. Explore only with list_dir, read_file and grep_search.'
+          : ''),
     )
     if (current.plan?.status === 'revising' && current.plan.feedback)
       parts.push(
@@ -49,6 +59,41 @@ export function taskGuidance(store: Store, task: Task, project: Project): string
         fence('prerequisite-handoffs', prerequisites),
     )
   return parts.join('\n')
+}
+
+function autonomousRules(provider?: string): string {
+  return [
+    '\nAUTONOMOUS ROOM: the user asked the team to finish without stopping. Do the work yourself end to end; do not ask the user for confirmation unless the request explicitly says to stop and ask.',
+    'Tool requests are approved by host policy (anything that pushes, rewrites Git history, touches credentials or deletes outside your workspace is denied).',
+    'If a command fails because of your sandbox (no network such as npm ENOTCACHED/only-if-cached, or spawn EPERM), rerun the same command with escalated permissions instead of giving up.',
+    'When your turn ends the host commits, tests and integrates your workspace into the primary folder; teammates receive it at the start of their next task. Do not recreate files another agent owns; if you need something from them, send_message or assign_task to that agent.',
+    "If a test fails in another agent's files, assign_task to that agent with the exact error. Fix failures in your own files yourself. Never weaken or delete tests to make them pass.",
+    provider === 'antigravity'
+      ? 'Antigravity: only these exact commands are permitted: npm install, npm ci, npm test, npm run test, npm run build, npx vitest run, npx tsc --noEmit, git status, git diff, git log --oneline -5. Any other run_command is denied and fails your turn, so explore with list_dir, read_file and grep_search.'
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
+/** The lead of a team run plans the contract, does the foundation and hands out the rest. */
+function leadProtocol(store: Store, task: Task): string {
+  const agents = store.list<AgentProfile>('agents')
+  const team = task
+    .team!.members.map((id) => agents.find((a) => a.id === id))
+    .filter((a): a is AgentProfile => !!a)
+    .map((a) => `- ${a.id} (${a.name}): ${a.role || 'team member'}`)
+    .join('\n')
+  return (
+    `\nTEAM LEAD PROTOCOL: the user sent this request to the whole team and you (${task.agentId}) are the lead. Deliver the complete result in this run without waiting for the user. Team and roles:\n${team}\n` +
+    [
+      '1. Read the repository and the request. Decide the shared contract (data types, function/hook/API signatures, file layout) and strict file ownership by role, so no two agents edit the same file.',
+      '2. Record the contract with propose_decision, and report_progress it to every teammate.',
+      `3. Implement the foundation that others build on (project scaffold, package.json with every dependency the team needs including test tooling, lockfile, shared types/state) in this turn yourself. Install dependencies and make the build and test commands runnable.`,
+      `4. Before ending the turn, assign_task each teammate's part (one call per teammate, recipients [id]) with the contract, the exact files they own, and acceptance criteria. Put your own Task ID (${task.id}) in dependencies so they start from your integrated foundation. Give the tester/reviewer role a task whose dependencies are the task IDs returned for the implementation tasks, asking them to write and run tests, review the code, and assign_task fixes to the owning agent when something fails.`,
+      "5. Do not do your teammates' parts. Finish with submit_handoff.",
+    ].join('\n')
+  )
 }
 
 export function formatHandoff(h: TaskHandoff): string {

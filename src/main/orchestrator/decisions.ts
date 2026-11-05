@@ -7,7 +7,7 @@ export const MAX_DECISIONS = 100
 /** Accepted decisions injected into a prompt are bounded so a long log cannot crowd out the task. */
 const PROMPT_BUDGET = 6000
 
-/** An agent's proposal. It has no effect on any prompt until the user accepts it. */
+/** An agent's proposal: adopted at once in autonomous mode, otherwise waits for the user. */
 export function proposeDecision(store: Store, task: Task, title: string, detail: string): Decision {
   const project = store.require<Project>('projects', task.projectId)
   const decisions = project.decisions || []
@@ -18,14 +18,18 @@ export function proposeDecision(store: Store, task: Task, title: string, detail:
   if (duplicate) return duplicate
   if (decisions.length >= MAX_DECISIONS)
     throw new Error('Decision log is full. Ask the user to archive old decisions first.')
+  // Autonomous rooms adopt the team's contract at once; the user can still edit or reject it.
+  const autonomous = store.settings().autonomy === 'auto'
+  const now = new Date().toISOString()
   const decision: Decision = {
     id: randomUUID(),
     title: clean,
     detail: redact(detail).trim().slice(0, 4000),
-    status: 'proposed',
+    status: autonomous ? 'accepted' : 'proposed',
     proposedBy: task.agentId,
     taskId: task.id,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
+    ...(autonomous ? { decidedAt: now } : {}),
   }
   store.put('projects', { ...project, decisions: [...decisions, decision] })
   store.put('messages', {
@@ -34,7 +38,9 @@ export function proposeDecision(store: Store, task: Task, title: string, detail:
     conversationId: task.conversationId,
     senderId: 'system',
     recipientIds: ['user'],
-    content: `${task.agentId} 提議專案決策，等待你確認：${decision.title}\n${task.agentId} proposed a project decision for your confirmation.`,
+    content: autonomous
+      ? `${task.agentId} 記錄了專案決策（全自動模式直接採用，可在「決策」修改或否決）：${decision.title}\n${task.agentId} recorded a project decision (adopted automatically).`
+      : `${task.agentId} 提議專案決策，等待你確認：${decision.title}\n${task.agentId} proposed a project decision for your confirmation.`,
     type: 'system',
     timestamp: decision.createdAt,
     taskId: task.id,

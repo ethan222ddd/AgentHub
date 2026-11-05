@@ -23,6 +23,18 @@ import { isPlanning } from '../../shared/tasks'
 import { taskGuidance } from './guidance'
 
 import type { RunContext } from '../agents/adapter'
+export const AUTONOMOUS_AGY_COMMANDS = [
+  'npm install',
+  'npm ci',
+  'npm test',
+  'npm run test',
+  'npm run build',
+  'npx vitest run',
+  'npx tsc --noEmit',
+  'git status',
+  'git diff',
+  'git log --oneline -5',
+]
 export interface TurnHost {
   store: Store
   adapters: Map<string, AgentAdapter>
@@ -51,6 +63,7 @@ export interface TurnHost {
   ): Promise<boolean>
   collaborate(task: Task, input: CollaborationInput, signal: AbortSignal): Promise<unknown>
   integrationMessage(task: Task, integration: NonNullable<Task['integration']>): void
+  autoFix(task: Task, detail: string): void
   requestReview(
     workspaceId: string,
     conversationId: string,
@@ -69,14 +82,26 @@ export async function executeTurn(
   if (project.autoManaged && task.kind !== 'review')
     agent.instructions +=
       '\nAgentHub automatically checks and integrates completed changes into the selected primary folder. For Node projects, provide a meaningful npm test script when implementing code. Never weaken tests merely to pass. Static HTML/CSS-only projects receive explicitly labelled basic static checks. Do not commit credentials. The host handles worktree setup and integration; do not reset, clean, force-push or manually change worktree registration.'
+  // Antigravity runs only exactly listed commands; autonomous rooms give it the usual dev loop.
+  if (host.store.settings().autonomy === 'auto' && agent.provider === 'antigravity') {
+    if (!agent.commandAllowlist?.length) agent.commandAllowlist = AUTONOMOUS_AGY_COMMANDS
+    if (!agent.networkAllowlist?.length) agent.networkAllowlist = ['registry.npmjs.org']
+  }
   const adapter = host.adapters.get(agent.provider)
   // Plan-first tasks run read-only until the user approves the submitted plan.
   const planning = isPlanning(task)
   let persistTimer: NodeJS.Timeout | undefined
-  const timeout = setTimeout(
-    () => controller.abort(new Error('Task timeout')),
-    host.store.settings().timeoutMs,
-  )
+  // Time spent waiting for the user's approval does not count against the task's runtime.
+  const limit = host.store.settings().timeoutMs
+  const expire = (): NodeJS.Timeout =>
+    setTimeout(() => {
+      if (host.store.get<Task>('tasks', task.id)?.waitReason === 'approval') {
+        timeout = expire()
+        return
+      }
+      controller.abort(new Error('Task timeout'))
+    }, limit)
+  let timeout = expire()
   // Persist the reply before preflight so workspace/launch failures are visible in the room.
   const message: Message = {
     id: randomUUID(),
@@ -386,6 +411,9 @@ export async function executeTurn(
       messageId: message.id,
       characters: message.content.length,
     })
+    // Autonomous rooms send a failed integration straight back to the agent that owns it.
+    if (integration?.status === 'attention' && host.store.settings().autonomy === 'auto')
+      host.autoFix(host.store.require<Task>('tasks', task.id), integration.detail)
     if (
       !task.reviewId &&
       !task.workflow &&

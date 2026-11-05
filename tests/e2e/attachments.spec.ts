@@ -134,6 +134,13 @@ test('real Electron imports immutable images, previews, exports and restores aft
         projectId: value.projects[0].id,
         enabled: false,
       })
+      // Ask mode delivers @All to every agent separately (autonomous mode would pick a lead).
+      const { settings } = await window.agenthub.invoke<{ settings: Record<string, unknown> }>({
+        op: 'snapshot',
+      })
+      const { id: _id, ...rest } = settings
+      void _id
+      await window.agenthub.invoke({ op: 'settings.save', settings: { ...rest, autonomy: 'ask' } })
     })
     await page.getByRole('textbox', { name: 'Message' }).fill('@All Inspect the image')
     await page.getByRole('button', { name: 'Send', exact: true }).click()

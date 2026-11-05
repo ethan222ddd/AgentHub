@@ -374,10 +374,24 @@ describe('Automatic project lifecycle', { timeout: 60000 }, () => {
       s.store.close()
     }
   })
+  it('publishes leftover edits as agent work in autonomous mode', async () => {
+    const s = await setup()
+    try {
+      const w = await s.workspace()
+      await writeFile(join(w.path, 'carried.txt'), 'finished by the agent')
+      const before = await s.auto.capture(w)
+      const result = await s.auto.finish(s.project, w, s.signal, before)
+      expect(result.status).toBe('merged')
+      expect(await readFile(join(s.root, 'carried.txt'), 'utf8')).toBe('finished by the agent')
+    } finally {
+      s.store.close()
+    }
+  })
   it('keeps prior unfinished edits unpublished when the next turn only reads them', async () => {
     const s = await setup()
     try {
       const w = await s.workspace()
+      s.store.put('settings', { ...s.store.settings(), id: 'general', autonomy: 'ask' })
       await writeFile(join(w.path, 'unfinished.txt'), 'not ready for publishing')
       const before = await s.auto.capture(w)
       const result = await s.auto.finish(s.project, w, s.signal, before)

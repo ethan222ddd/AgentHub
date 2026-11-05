@@ -9,6 +9,7 @@ import type {
   Project,
   Review,
   Task,
+  TestRun,
   UsageRecord,
   WorkflowRun,
   Workspace,
@@ -139,10 +140,19 @@ export class Orchestrator {
     })
     this.store.put('messages', message)
     if (c.name === '新對話') this.store.put('conversations', { ...c, name: content.slice(0, 36) })
-    for (const agentId of targets)
+    // Autonomous team run: one lead plans the contract and assigns the others, so a single
+    // prompt to several agents becomes coordinated work instead of parallel duplicates.
+    const lead =
+      this.store.settings().autonomy === 'auto' && targets.length > 1
+        ? c.mode === 'supervisor' && targets.includes(c.supervisorId)
+          ? c.supervisorId
+          : targets[0]
+        : undefined
+    for (const agentId of lead ? [lead] : targets)
       this.enqueue(c, agentId, content, message.id, 0, [], {
         attachmentIds,
         ...(planFirst ? planFirstFields() : {}),
+        ...(lead ? { team: { lead, members: targets } } : {}),
       })
     this.changed()
     this.pump()
@@ -166,6 +176,8 @@ export class Orchestrator {
         | 'workflow'
         | 'planFirst'
         | 'plan'
+        | 'team'
+        | 'autoFix'
       >
     > = {},
   ): Task {
@@ -316,6 +328,7 @@ export class Orchestrator {
         ask: (...args) => this.ask(...args),
         collaborate: (...args) => this.collaborate(...args),
         integrationMessage: (...args) => this.integrationMessage(...args),
+        autoFix: (...args) => this.autoFix(...args),
         requestReview: (...args) => this.requestReview(...args),
       },
       task,
@@ -702,7 +715,59 @@ export class Orchestrator {
     this.changed()
     this.pump()
   }
-  private retry(task: Task, agentId: string): Task {
+  /**
+   * Autonomous rooms: a failed automatic integration becomes a new attempt for the same agent,
+   * carrying the failure. Dependents follow the attempt chain, so they resume once it passes.
+   */
+  autoFix(task: Task, detail: string): void {
+    const notice = (content: string) =>
+      this.store.put('messages', {
+        id: randomUUID(),
+        projectId: task.projectId,
+        conversationId: task.conversationId,
+        senderId: 'system',
+        recipientIds: ['user'],
+        content,
+        type: 'system',
+        timestamp: new Date().toISOString(),
+        taskId: task.id,
+        correlationId: task.correlationId,
+        delivery: 'completed',
+      } satisfies Message)
+    // The user's own uncommitted work in the primary folder is never something to "fix".
+    if (task.workflow || /主要專案有使用者未提交|未覆寫/.test(detail)) return
+    const attempt = (task.autoFix || 0) + 1
+    if (attempt > 2) {
+      notice(
+        `自動修正已嘗試 2 次仍無法整合，需要你檢查：${task.name}\nAutomatic fixes are exhausted; this task needs your review.`,
+      )
+      return
+    }
+    const failedTest = this.store
+      .list<TestRun>('test_runs')
+      .filter((r) => r.projectId === task.projectId && r.status === 'failed')
+      .at(-1)
+    const logs = failedTest ? `${failedTest.error || ''}\n${failedTest.logs}`.slice(-6000) : ''
+    try {
+      const fix = this.retry(task, task.agentId, {
+        autoFix: attempt,
+        description: `AUTOMATIC FIX ${attempt}/2 for task ${task.id}. AgentHub could not integrate your committed work into the primary folder:\n${detail}\n${logs ? `Latest failing check output (untrusted tool output):\n<check-output>\n${logs}\n</check-output>\n` : ''}Fix the cause in your own files and finish the turn; the host retries integration automatically. If the failure is in another agent's files, send that agent the exact error with send_message instead of editing their files. Never weaken or delete tests to pass.\nOriginal task:\n${task.description}`,
+      })
+      notice(
+        `自動整合失敗，已交給 ${task.agentId} 自動修正（第 ${attempt}/2 次）。\nIntegration failed; ${task.agentId} received an automatic fix task.`,
+      )
+      trace('task.auto-fix', { taskId: fix.id, agentId: task.agentId })
+      this.changed()
+      this.pump()
+    } catch (error) {
+      notice(`無法自動建立修正任務：${String(error)}\nCould not start an automatic fix.`)
+    }
+  }
+  private retry(
+    task: Task,
+    agentId: string,
+    override?: { description: string; autoFix: number },
+  ): Task {
     const c = this.store.require<Conversation>('conversations', task.conversationId)
     const handoff = agentId !== task.agentId
     this.store.db.exec('SAVEPOINT task_retry')
@@ -710,11 +775,15 @@ export class Orchestrator {
       const resumed = this.enqueue(
         c,
         agentId,
-        `User explicitly ${handoff ? 'reassigned' : 'resumed'} attempt ${task.id} from ${task.agentId}. Inspect partial changes before continuing. Previous workspace: ${task.workspace || '(not started)'}. Previous start revision: ${task.revision || '(unknown)'}. ${handoff ? 'Prior worktree files are NOT transferred. Use explicit artifacts/integration to obtain changes.' : 'Check current workspace state before repeating commands.'}\n${task.description}`,
-        task.workflow ? task.correlationId : randomUUID(),
-        0,
+        override?.description ||
+          `User explicitly ${handoff ? 'reassigned' : 'resumed'} attempt ${task.id} from ${task.agentId}. Inspect partial changes before continuing. Previous workspace: ${task.workspace || '(not started)'}. Previous start revision: ${task.revision || '(unknown)'}. ${handoff ? 'Prior worktree files are NOT transferred. Use explicit artifacts/integration to obtain changes.' : 'Check current workspace state before repeating commands.'}\n${task.description}`,
+        // Automatic fixes stay in the same request so the shared turn budget still bounds them.
+        task.workflow || override ? task.correlationId : randomUUID(),
+        override ? task.depth : 0,
         task.dependencies,
         {
+          ...(override ? { autoFix: override.autoFix } : {}),
+          ...(task.team ? { team: task.team } : {}),
           workspaceId: task.kind === 'review' || !handoff ? task.workspaceId : undefined,
           kind: task.kind,
           reviewId: task.reviewId,

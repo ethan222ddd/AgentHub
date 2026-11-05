@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Square,
   X,
+  Zap,
 } from 'lucide-react'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { isTaskActive, taskStatusLabel } from '../../../shared/tasks'
@@ -267,6 +268,32 @@ export function ChatComposer({
             </div>
           </div>
           <div className="composer-right">
+            <Button
+              size="sm"
+              variant={snapshot.settings.autonomy === 'auto' ? 'outline' : 'ghost'}
+              className={`plan-toggle autonomy-toggle ${snapshot.settings.autonomy === 'auto' ? 'on' : ''}`}
+              aria-pressed={snapshot.settings.autonomy === 'auto'}
+              title={text(
+                '全自動：依安全規則自動批准，代理分工做到完成；關閉後每個工具請求都等你批准',
+                'Autonomous: host policy approves and the team works to completion; off = every tool request waits for you',
+              )}
+              onClick={() => {
+                const { id: _id, ...settings } = snapshot.settings as typeof snapshot.settings & {
+                  id?: string
+                }
+                void _id
+                void perform({
+                  op: 'settings.save',
+                  settings: {
+                    ...settings,
+                    autonomy: snapshot.settings.autonomy === 'auto' ? 'ask' : 'auto',
+                  },
+                })
+              }}
+            >
+              <Zap size={14} />
+              <span>{text('全自動', 'Autonomous')}</span>
+            </Button>
             <Button
               size="sm"
               variant={planFirst ? 'outline' : 'ghost'}

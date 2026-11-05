@@ -34,6 +34,7 @@ class ScriptedAdapter implements AgentAdapter {
 }
 async function setup(adapter: AgentAdapter) {
   const store = new Store(':memory:')
+  store.put('settings', { ...store.settings(), id: 'general', autonomy: 'ask' })
   const project = store.addProject(await repository(), 'Repo')
   store.put('projects', { ...project, autoManaged: false })
   const c = store.snapshot().conversations[0]

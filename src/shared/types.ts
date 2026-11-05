@@ -171,6 +171,10 @@ export interface Task {
   }
   runtime?: RuntimeSelection
   retryOf?: string
+  /** Set on a host-created fix attempt after a failed automatic integration. */
+  autoFix?: number
+  /** The lead task of an autonomous team run, and the teammates it coordinates. */
+  team?: { lead: string; members: string[] }
   supersededBy?: string
   waitReason?: 'dependencies' | 'workspace_lock' | 'approval' | 'recovery' | 'integration' | 'plan'
   blockedBy?: string[]
@@ -264,6 +268,8 @@ export interface TestRun {
   error?: string
 }
 export interface Settings {
+  /** auto: agents run to completion with host safety rules; ask: every tool request waits for the user. */
+  autonomy: 'auto' | 'ask'
   notifications: 'all' | 'approvals' | 'off'
   maxUsageTokens: number
   maxCostUsd: number

@@ -23,6 +23,7 @@ import type {
 } from '../../shared/types'
 
 export const defaults: Settings = {
+  autonomy: 'auto',
   notifications: 'all',
   maxUsageTokens: 200000,
   maxCostUsd: 5,
@@ -33,7 +34,7 @@ export const defaults: Settings = {
   reviewerId: '',
   theme: 'system',
   language: 'zh-TW',
-  maxTurns: 12,
+  maxTurns: 20,
   maxConcurrent: 3,
   maxDepth: 3,
   maxFanout: 3,

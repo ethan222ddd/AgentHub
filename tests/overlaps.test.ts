@@ -27,15 +27,34 @@ describe('file overlap early warning', () => {
       'new file.ts',
       'b2.ts',
     ])
+    // Identical bytes in two workspaces (e.g. after a merge) are not a conflict.
     expect(
       findOverlaps([
-        { workspaceId: 'w1', agentId: 'codex', files: new Map([['x', false]]) },
+        {
+          workspaceId: 'w1',
+          agentId: 'codex',
+          files: new Map([['same', { uncommitted: false, hash: 'h1' }]]),
+        },
+        {
+          workspaceId: 'w2',
+          agentId: 'claude',
+          files: new Map([['same', { uncommitted: true, hash: 'h1' }]]),
+        },
+      ]),
+    ).toEqual([])
+    expect(
+      findOverlaps([
+        {
+          workspaceId: 'w1',
+          agentId: 'codex',
+          files: new Map([['x', { uncommitted: false, hash: 'h1' }]]),
+        },
         {
           workspaceId: 'w2',
           agentId: 'claude',
           files: new Map([
-            ['x', true],
-            ['y', true],
+            ['x', { uncommitted: true, hash: 'h2' }],
+            ['y', { uncommitted: true, hash: 'h3' }],
           ]),
         },
       ]),

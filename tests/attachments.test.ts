@@ -82,6 +82,7 @@ describe('Immutable binary attachments', () => {
   })
   it('routes immutable images to all three native image paths and retains referenced bytes', async () => {
     const store = new Store(':memory:')
+    store.put('settings', { ...store.settings(), id: 'general', autonomy: 'ask' })
     const p = store.addProject(await directory(), 'P')
     const c = store.snapshot().conversations[0]
     const image = await new AttachmentStore(store).importImage(p.id, 'screen.png', png)
