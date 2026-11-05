@@ -5,6 +5,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   desktop:
     runs-on: windows-latest
@@ -18,9 +21,15 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm exec -- install-electron --no
+      - name: Ensure the pinned Electron binary is installed
+        run: node node_modules/electron/install.js
       - run: npm run typecheck
       - run: npm run lint
+      - name: Check source-only tracking
+        shell: pwsh
+        run: |
+          $generated = @(git ls-files -- release dist .local .native node_modules test-results playwright-report '*.sqlite*' '.env*')
+          if ($generated.Count) { throw 'Generated or private data must not be tracked' }
       - run: npm test
       - run: npm run package:win
         env:
@@ -29,7 +38,16 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: AgentHub-Windows-x64
-          path: release/*/AgentHub Setup *.exe
+          path: |
+            release/*/AgentHub Setup *.exe
+            release/*/AgentHub-*-portable.exe
           if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: AgentHub-test-diagnostics
+          path: test-results/
+          if-no-files-found: ignore
           retention-days: 7
       # Native paid-account tests are deliberately opt-in local commands, never CI secrets.

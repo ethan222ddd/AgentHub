@@ -1,0 +1,88 @@
+.markdown {
+  line-height: 1.9;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.markdown p {
+  margin: 8px 0 12px;
+}
+.markdown ul,
+.markdown ol {
+  padding-left: 23px;
+  margin: 10px 0;
+}
+.markdown li {
+  margin: 3px 0;
+}
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  font-size: 16px;
+  margin: 20px 0 10px;
+  font-weight: 600;
+}
+.markdown table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 12px 0;
+  font-size: 12px;
+}
+.markdown th,
+.markdown td {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+.markdown blockquote {
+  border-left: 2px solid var(--border);
+  margin: 12px 0;
+  padding: 0 15px;
+  color: var(--muted);
+}
+.markdown code {
+  font-family: Consolas, monospace;
+  font-size: 11px;
+  background: var(--code);
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+.code-block {
+  background: var(--code);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  margin: 12px 0;
+  overflow: hidden;
+}
+.code-block > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  font-size: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+.code-block pre {
+  overflow: auto;
+  padding: 12px;
+  margin: 0;
+  white-space: pre;
+  line-height: 1.7;
+}
+.code-block code {
+  padding: 0;
+  background: none;
+}
+.text-link {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.diagram {
+  overflow: auto;
+  padding: 12px;
+  background: #fafbf7;
+}
+.diagram svg {
+  max-width: 100%;
+}

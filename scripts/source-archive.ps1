@@ -7,7 +7,7 @@ if ((Test-Path -LiteralPath (Join-Path $projectRoot '.local')) -and ((Get-Item -
 New-Item -ItemType Directory -Path $staging | Out-Null
 try {
 # Explicit public-source allowlist: never package .local, credentials, .env or installed runtimes.
-foreach ($entry in @('src','tests','docs','scripts','assets','.github','.gitignore','.prettierrc.json','electron.vite.config.ts','eslint.config.js','LICENSE','package-lock.json','package.json','playwright.config.ts','README.md','tsconfig.json','vitest.config.ts')) {
+foreach ($entry in @('src','tests','docs','scripts','assets','.github','.gitignore','.gitattributes','.prettierrc.json','electron.vite.config.ts','eslint.config.js','LICENSE','package-lock.json','package.json','playwright.config.ts','README.md','tsconfig.json','vitest.config.ts')) {
   $sourcePath = Join-Path $projectRoot $entry
   if (Test-Path -LiteralPath $sourcePath) {
     $sourceEntry = Get-Item -LiteralPath $sourcePath -Force

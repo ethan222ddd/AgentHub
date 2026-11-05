@@ -1,4 +1,5 @@
-import { test, expect, _electron as electron } from '@playwright/test'
+import { directory } from '../helpers'
+import { test, expect, _electron as electron } from './fixtures'
 import { mkdtemp, mkdir, writeFile, readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { Store } from '../../src/main/database/store'
@@ -7,7 +8,7 @@ test('SQLite history pages and searches beyond loaded messages; restore preserve
   const root = resolve('.local/e2e-history')
   await mkdir(root, { recursive: true })
   const profile = await mkdtemp(join(root, 'profile-'))
-  const project = await mkdtemp(join(root, 'project-'))
+  const project = await directory('project-')
   const seed = new Store(join(profile, 'agenthub.sqlite'))
   const p = seed.addProject(project, 'Long history')
   const c = seed.snapshot().conversations[0]
@@ -50,7 +51,9 @@ test('SQLite history pages and searches beyond loaded messages; restore preserve
     expect(data.messages[0].id).toBe('history-0')
     await page.getByTitle('Search · Ctrl+K').click()
     await page.getByPlaceholder('搜尋目前對話的所有訊息').fill('EARLIEST_SEARCH_PROOF')
-    await expect(page.getByTestId('message').filter({ hasText:'EARLIEST_SEARCH_PROOF' })).toBeVisible()
+    await expect(
+      page.getByTestId('message').filter({ hasText: 'EARLIEST_SEARCH_PROOF' }),
+    ).toBeVisible()
     const attachment = await page.evaluate(
       async ({ projectId, path }) =>
         window.agenthub.invoke<{ content: string }[]>({

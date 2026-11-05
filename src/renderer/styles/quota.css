@@ -1,0 +1,134 @@
+.quota-control {
+  position: relative;
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+.project-readiness {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.7;
+}
+.quota-control summary {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  cursor: pointer;
+  color: var(--muted);
+  list-style: none;
+  flex-wrap: wrap;
+}
+.quota-menu {
+  position: absolute;
+  bottom: 35px;
+  right: 0;
+  width: min(390px, 85vw);
+  max-height: 65vh;
+  overflow: auto;
+  background: var(--sidebar);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  z-index: 30;
+  box-shadow: 0 12px 40px #0003;
+  color: var(--text);
+}
+.quota-menu header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.quota-menu button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.quota-menu p {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+  margin-block: 10px;
+}
+.quota-menu article {
+  border-top: 1px solid var(--border);
+  padding-block: 14px;
+}
+.quota-menu small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 7px;
+}
+.quota-window {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px;
+  margin-block: 12px;
+}
+.quota-window progress {
+  width: 100%;
+  height: 4px;
+  accent-color: var(--muted);
+  grid-column: 1 / -1;
+}
+.quota-window small {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.quota-control .quota-stale {
+  color: #c29355;
+}
+@media (max-width: 800px) {
+  .quota-control summary > span:not(:first-of-type) {
+    display: none;
+  }
+}
+button:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+input,
+select,
+textarea {
+  color: var(--text);
+  outline: none;
+}
+input,
+select {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 7px;
+  padding: 8px 10px;
+  min-width: 0;
+}
+input:focus,
+textarea:focus {
+  border-color: var(--accent);
+}
+input[type='checkbox'] {
+  accent-color: #6c845c;
+  width: 14px;
+  height: 14px;
+}
+textarea {
+  resize: vertical;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 10px;
+}
+svg {
+  flex-shrink: 0;
+}
+::selection {
+  background: #91a87955;
+}
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 8px;
+}

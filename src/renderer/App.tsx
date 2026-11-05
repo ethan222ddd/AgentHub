@@ -1,46 +1,29 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useWorkspaceEvents } from './hooks/useWorkspaceEvents'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import {
-  Activity as ActivityIcon,
   ArrowUp,
-  AtSign,
   Bot,
-  ChevronDown,
-  ChevronsLeft,
-  ChevronsRight,
   Circle,
-  Folder,
   FolderPlus,
   GitBranch,
-  MessageSquare,
-  MoreHorizontal,
-  Paperclip,
-  Plus,
-  Reply,
   Search,
-  Settings as SettingsIcon,
   ShieldCheck,
-  Square,
-  X,
-  Play,
-  PanelRight,
-  PanelLeft,
-  Pin,
   Workflow,
+  X,
 } from 'lucide-react'
-import type { Conversation, Message, Project, Provider, Attachment } from '../shared/types'
-import { useWorkspace } from './stores/workspace'
-import { isTaskActive, taskStatusLabel } from '../shared/tasks'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { isTaskActive } from '../shared/tasks'
+import type { Attachment, Conversation, Message, Project, Provider } from '../shared/types'
 import { Button } from './components/ui'
-import { Markdown } from './components/Markdown'
+import { ChatComposer } from './features/chat/ChatComposer'
+import { MessageList } from './features/chat/MessageList'
+import { Sidebar } from './features/chat/Sidebar'
+import { WorkspaceHeader } from './features/chat/WorkspaceHeader'
 import { Settings } from './features/Settings'
 import { SidePanel } from './features/SidePanel'
-import { version } from '../../package.json'
 import { TeamEditor } from './features/TeamEditor'
-import { Attachments } from './features/Attachments'
-import { ModelControl } from './features/ModelControl'
-import { QuotaControl } from './features/QuotaControl'
 import { WorkflowEditor } from './features/WorkflowEditor'
+import { useWorkspace } from './stores/workspace'
 const colors: Record<Provider, string> = {
   codex: 'codex',
   claude: 'claude',
@@ -99,96 +82,22 @@ export function App() {
       throw e
     }
   }, [])
-  useEffect(() => {
-    void refresh().catch((e) => set({ error: String(e) }))
-    let timer: ReturnType<typeof setTimeout> | undefined
-    const deltas = new Map<string, string>()
-    const deltaTimer = setInterval(() => {
-      if (!deltas.size) return
-      const state = useWorkspace.getState()
-      state.set({
-        messages: state.messages.map((m) =>
-          deltas.has(m.id) ? { ...m, content: m.content + deltas.get(m.id)! } : m,
-        ),
-      })
-      deltas.clear()
-    }, 40)
-    const unsubscribe = window.agenthub.subscribe((event) => {
-      const state = useWorkspace.getState()
-      if (event.type === 'changed') {
-        clearTimeout(timer)
-        timer = setTimeout(() => {
-          deltas.clear()
-          void state
-            .refresh()
-            .then(() => {
-              const id = useWorkspace.getState().conversationId
-              if (id) return state.load(id, useWorkspace.getState().search, true)
-            })
-            .catch((e) => state.set({ error: String(e) }))
-        }, 70)
-      }
-      if (event.type === 'delta' && event.conversationId === state.conversationId)
-        deltas.set(event.messageId, (deltas.get(event.messageId) || '') + event.delta)
-      if (event.type === 'activity' && event.activity.conversationId === state.conversationId)
-        state.set({ activities: [...state.activities, event.activity].slice(-200) })
-      if (event.type === 'approvals') {
-        state.set({ approvals: event.approvals })
-        if (event.approvals.length) setPanel('activity')
-      }
-      if (event.type === 'notification-error') state.set({ error: event.message })
-      if (event.type === 'navigate') {
-        const epoch = state.reserveSelection()
-        deltas.clear()
-        setSettingsOpen(false)
-        setTeamOpen(false)
-        setWorkflowOpen(false)
-        setSearchOpen(false)
-        setQuery('')
-        setPanel('activity')
-        void state
-          .refresh()
-          .then(() => state.load(event.conversationId, '', false, epoch))
-          .catch((e) => state.set({ error: String(e) }))
-      }
-    })
-    void window.agenthub
-      .invoke({ op: 'notifications.ready' })
-      .catch((e) => set({ error: String(e) }))
-    const rejected = (event: PromiseRejectionEvent) => {
-      event.preventDefault()
-      set({ error: event.reason instanceof Error ? event.reason.message : String(event.reason) })
-    }
-    window.addEventListener('unhandledrejection', rejected)
-    return () => {
-      unsubscribe()
-      clearInterval(deltaTimer)
-      clearTimeout(timer)
-      window.removeEventListener('unhandledrejection', rejected)
-    }
-  }, [refresh, set])
-  useEffect(() => {
-    const read = () => {
-      if (conversationId && document.hasFocus())
-        void window.agenthub
-          .invoke({ op: 'notifications.read', conversationId })
-          .catch((e) => set({ error: String(e) }))
-    }
-    read()
-    window.addEventListener('focus', read)
-    return () => window.removeEventListener('focus', read)
-  }, [conversationId, set])
-  useEffect(() => {
-    const theme = snapshot?.settings.theme || 'system'
-    const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const apply = () => {
-      document.documentElement.dataset.theme =
-        theme === 'system' ? (media.matches ? 'dark' : 'light') : theme
-    }
-    apply()
-    media.addEventListener('change', apply)
-    return () => media.removeEventListener('change', apply)
-  }, [snapshot?.settings.theme])
+  const openActivity = useCallback(() => setPanel('activity'), [])
+  const navigateFromNotification = useCallback(() => {
+    setSettingsOpen(false)
+    setTeamOpen(false)
+    setWorkflowOpen(false)
+    setSearchOpen(false)
+    setQuery('')
+    setPanel('activity')
+  }, [])
+  useWorkspaceEvents(
+    conversationId,
+    snapshot?.settings.theme,
+    navigateFromNotification,
+    openActivity,
+  )
+
   useEffect(() => {
     if (nearBottom.current && scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight
   }, [messages, conversationId])
@@ -338,242 +247,41 @@ export function App() {
     )
   return (
     <div className="app-shell">
-      <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
-        <div className="brand-row">
-          <div className="brand">
-            <div className="brand-mark">a</div>
-            {!collapsed && (
-              <span>
-                AgentHub <small>LOCAL</small>
-              </span>
-            )}
-          </div>
-          <Button
-            size="icon"
-            variant="ghost"
-            aria-label="Toggle sidebar"
-            onClick={() => setCollapsed(!collapsed)}
-          >
-            {collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
-          </Button>
-        </div>
-        <div className="sidebar-controls">
-          <button className="new-project" onClick={() => void pickProject()}>
-            <FolderPlus size={17} />
-            {!collapsed && text('新增專案', 'Add project')}
-            {!collapsed && <Plus size={14} />}
-          </button>
-          <button
-            className="search-button"
-            title="Search · Ctrl+K"
-            onClick={() => setSearchOpen(!searchOpen)}
-          >
-            <Search size={16} />
-            {!collapsed && (
-              <>
-                {text('搜尋對話', 'Search conversations')}
-                <kbd>⌃ K</kbd>
-              </>
-            )}
-          </button>
-        </div>
-        {!collapsed && (
-          <div className="sidebar-label">
-            {text('工作空間', 'WORKSPACES')}
-            <span>{snapshot.projects.length}</span>
-          </div>
-        )}
-        <div className="project-list">
-          {snapshot.projects.map((p) => (
-            <section className="project-group" key={p.id}>
-              <div className={`project-row ${project?.id === p.id ? 'current' : ''}`}>
-                <button
-                  title={p.path}
-                  onClick={() => {
-                    const c = snapshot.conversations.filter((c) => c.projectId === p.id).at(-1)
-                    if (c) void load(c.id)
-                    else void newChat(p.id)
-                  }}
-                >
-                  <Folder size={16} />
-                  {!collapsed && <span>{p.name}</span>}
-                </button>
-                {!collapsed && (
-                  <>
-                    <button title="New conversation" onClick={() => void newChat(p.id)}>
-                      <Plus size={14} />
-                    </button>
-                    <button
-                      title="Project options"
-                      onClick={() => setMenu(menu === p.id ? '' : p.id)}
-                    >
-                      <MoreHorizontal size={15} />
-                    </button>
-                  </>
-                )}
-                {menu === p.id && (
-                  <div className="project-menu">
-                    <button
-                      onClick={() => {
-                        setRename({ id: p.id, value: p.name })
-                        setMenu('')
-                      }}
-                    >
-                      {text('重新命名', 'Rename')}
-                    </button>
-                    <button
-                      onClick={() => {
-                        void perform({ op: 'project.open', id: p.id })
-                        setMenu('')
-                      }}
-                    >
-                      {text('開啟資料夾', 'Open folder')}
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            text(
-                              '移除專案捷徑與對話紀錄？專案檔案和工作區不會刪除。',
-                              'Remove shortcut and chat history? Project and workspace files are preserved.',
-                            ),
-                          )
-                        )
-                          void perform({ op: 'project.remove', id: p.id }).then(async () => {
-                            set({ conversationId: '', messages: [] })
-                            await refresh()
-                          })
-                        setMenu('')
-                      }}
-                    >
-                      {text('移除捷徑與紀錄', 'Remove shortcut & history')}
-                    </button>
-                  </div>
-                )}
-              </div>
-              {!collapsed &&
-                snapshot.conversations
-                  .filter((c) => c.projectId === p.id)
-                  .slice(-12)
-                  .reverse()
-                  .map((c) => (
-                    <button
-                      className={`conversation-row ${conversationId === c.id ? 'selected' : ''}`}
-                      data-conversation-id={c.id}
-                      key={c.id}
-                      onClick={() => void load(c.id)}
-                    >
-                      <MessageSquare size={13} />
-                      <span>
-                        {c.name === '新對話' ? text('新對話', 'New conversation') : c.name}
-                      </span>
-                    </button>
-                  ))}
-            </section>
-          ))}
-          {!snapshot.projects.length && !collapsed && (
-            <p className="sidebar-hint">
-              {text(
-                '加入本機專案，開始與代理協作。',
-                'Add a local project to start collaborating.',
-              )}
-            </p>
-          )}
-        </div>
-        <div className="sidebar-bottom">
-          <button title="Settings" aria-label="Settings" onClick={() => setSettingsOpen(true)}>
-            <SettingsIcon size={17} />
-            {!collapsed && (
-              <>
-                {text('設定', 'Settings')}
-                <span className="version">v{version}</span>
-              </>
-            )}
-          </button>
-          {!collapsed && (
-            <div className="local-status">
-              <span className="status-dot completed" />
-              {text('本機工作空間', 'Local workspace')}
-              <ShieldCheck size={12} />
-            </div>
-          )}
-        </div>
-      </aside>
+      <Sidebar
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+        pickProject={pickProject}
+        text={text}
+        setSearchOpen={setSearchOpen}
+        searchOpen={searchOpen}
+        snapshot={snapshot}
+        project={project}
+        load={load}
+        newChat={newChat}
+        setMenu={setMenu}
+        menu={menu}
+        setRename={setRename}
+        perform={perform}
+        set={set}
+        refresh={refresh}
+        conversationId={conversationId}
+        setSettingsOpen={setSettingsOpen}
+      />
       <main className="workspace">
-        <header className="workspace-header">
-          <div className="project-heading">
-            <PanelLeft size={17} className="muted" />
-            <div>
-              <h1>{project?.name || 'AgentHub'}</h1>
-              {project?.autoManaged && (
-                <small title={project.setup?.detail} className="project-readiness">
-                  {project.setup?.state === 'ready'
-                    ? text('就緒 · 自動管理', 'Ready · automatic')
-                    : project.setup?.state === 'attention'
-                      ? text('需要檢查 · 發送任務可處理', 'Needs review · send a task')
-                      : text('自動工作區', 'Automatic workspace')}
-                </small>
-              )}
-              <span>
-                {conversation?.name === '新對話'
-                  ? text('新對話', 'New conversation')
-                  : conversation?.name ||
-                    text('多代理協作工作空間', 'Multi-agent coding workspace')}
-              </span>
-            </div>
-          </div>
-          <div className="header-agents">
-            {agents.map((a) => {
-              const running = tasks.find((t) => t.agentId === a.id && t.status === 'running')
-              const last = tasks.filter((t) => t.agentId === a.id).at(-1)
-              const waiting = roomApprovals.some((approval) => approval.agentId === a.id)
-              return (
-                <span
-                  title={`${a.name} · ${waiting ? 'Waiting for approval' : running ? 'Running' : last ? taskStatusLabel(last, en) : 'Idle / connection not checked'}${last?.error ? '\n' + last.error : ''}`}
-                  className={`mini-avatar ${colors[a.provider]} ${running ? 'working' : ''} ${last?.status === 'failed' ? 'failed' : ''} ${waiting ? 'waiting' : ''}`}
-                  key={a.id}
-                >
-                  {a.name[0]}
-                  <i />
-                </span>
-              )
-            })}
-          </div>
-          <div className="header-actions">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setWorkflowOpen(true)}
-              aria-label="Workflows"
-            >
-              <Workflow size={15} />
-              <span>{text('流程', 'Workflows')}</span>
-            </Button>
-            {project && (
-              <Button size="sm" variant="ghost" onClick={() => setTeamOpen(true)}>
-                <Bot size={15} />
-                <span>{text('團隊', 'Team')}</span>
-              </Button>
-            )}
-            <Button
-              variant={panel === 'activity' ? 'outline' : 'ghost'}
-              size="sm"
-              onClick={() => setPanel(panel === 'activity' ? '' : 'activity')}
-            >
-              <ActivityIcon size={15} />
-              <span>{text('活動', 'Activity')}</span>
-              {!!roomApprovals.length && <b className="count">{roomApprovals.length}</b>}
-            </Button>
-            <Button
-              variant={panel === 'changes' ? 'outline' : 'ghost'}
-              size="sm"
-              onClick={() => setPanel(panel === 'changes' ? '' : 'changes')}
-            >
-              <GitBranch size={15} />
-              <span>{text('變更', 'Changes')}</span>
-            </Button>
-          </div>
-        </header>
+        <WorkspaceHeader
+          project={project}
+          text={text}
+          conversation={conversation}
+          agents={agents}
+          tasks={tasks}
+          roomApprovals={roomApprovals}
+          en={en}
+          colors={colors}
+          setWorkflowOpen={setWorkflowOpen}
+          setTeamOpen={setTeamOpen}
+          panel={panel}
+          setPanel={setPanel}
+        />
         {snapshot.conversations
           .filter(
             (c) => c.id !== conversationId && approvals.some((a) => a.conversationId === c.id),
@@ -752,402 +460,54 @@ export function App() {
                       </Button>
                     )}
                   </div>
-                  <div
-                    className="message-list virtual-messages"
-                    style={{ height: virtual.getTotalSize(), position: 'relative' }}
-                  >
-                    {virtual.getVirtualItems().map((item) => {
-                      const m = filtered[item.index]
-                      const agent = snapshot.agents.find((a) => a.id === m.senderId)
-                      return (
-                        <article
-                          className={`message ${m.senderId === 'user' ? 'user-message' : ''}`}
-                          key={m.id}
-                          ref={virtual.measureElement}
-                          data-index={item.index}
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            transform: `translateY(${item.start}px)`,
-                          }}
-                          data-testid="message"
-                        >
-                          <div className={`message-avatar ${agent?.provider || 'user'}`}>
-                            {agent ? agent.name[0] : m.senderId === 'user' ? 'Y' : '•'}
-                          </div>
-                          <div className="message-body">
-                            <div className="message-meta">
-                              <strong>
-                                {agent?.name ||
-                                  (m.senderId === 'user' ? text('你', 'You') : m.senderId)}
-                              </strong>
-                              {m.type === 'collaboration' && (
-                                <span className="message-tag">
-                                  →{' '}
-                                  {m.recipientIds
-                                    .map(
-                                      (id) => snapshot.agents.find((a) => a.id === id)?.name || id,
-                                    )
-                                    .join(', ') || 'room'}
-                                </span>
-                              )}
-                              <time>
-                                {new Date(m.timestamp).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </time>
-                              <button
-                                title="Reply"
-                                onClick={() => {
-                                  setReply(m)
-                                  if (m.attachments?.length)
-                                    setAttachments((current) =>
-                                      [
-                                        ...new Map(
-                                          [...current, ...m.attachments!].map((a) => [a.id, a]),
-                                        ).values(),
-                                      ].slice(0, 8),
-                                    )
-                                  composer.current?.focus()
-                                }}
-                              >
-                                <Reply size={13} />
-                              </button>
-                              {m.delivery === 'completed' && m.type !== 'system' && (
-                                <button
-                                  title={
-                                    pinnedIds.includes(m.id) ? '取消背景釘選' : '釘選為 Agent 背景'
-                                  }
-                                  aria-pressed={pinnedIds.includes(m.id)}
-                                  onClick={() =>
-                                    void perform({
-                                      op: 'context.pin',
-                                      messageId: m.id,
-                                      enabled: !pinnedIds.includes(m.id),
-                                    })
-                                  }
-                                >
-                                  <Pin
-                                    size={12}
-                                    fill={pinnedIds.includes(m.id) ? 'currentColor' : 'none'}
-                                  />
-                                </button>
-                              )}
-                            </div>
-                            <Markdown content={m.content} />
-                            {!!m.attachments?.length && <Attachments items={m.attachments} />}
-                            {m.delivery === 'streaming' && <span className="stream-cursor" />}
-                            {['failed', 'cancelled'].includes(m.delivery) && (
-                              <span className="message-error">{m.delivery}</span>
-                            )}
-                            {m.delivery === 'failed' &&
-                              m.content.includes('[WORKSPACE_NOT_READY]') && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setPanel('changes')}
-                                >
-                                  {text('設定隔離工作區', 'Prepare isolated workspace')}
-                                </Button>
-                              )}
-                          </div>
-                        </article>
-                      )
-                    })}
-                    {query && !filtered.length && (
-                      <p className="panel-empty">
-                        {text('找不到符合的訊息', 'No matching messages')}
-                      </p>
-                    )}
-                  </div>
+                  <MessageList
+                    virtual={virtual}
+                    filtered={filtered}
+                    snapshot={snapshot}
+                    text={text}
+                    setReply={setReply}
+                    setAttachments={setAttachments}
+                    composer={composer}
+                    pinnedIds={pinnedIds}
+                    perform={perform}
+                    setPanel={setPanel}
+                    query={query}
+                  />
                 </>
               )}
             </div>
-            <div className="composer-wrap">
-              {active && (
-                <div className="live-status">
-                  <span className="pulse-dot" />
-                  {tasks
-                    .filter(isTaskActive)
-                    .map(
-                      (t) =>
-                        `${snapshot.agents.find((a) => a.id === t.agentId)?.name} · ${t.status === 'running' ? activities.filter((a) => a.taskId === t.id).at(-1)?.type || text('處理中', 'Working') : taskStatusLabel(t, en)}`,
-                    )
-                    .join(' · ') || text('任務排程中', 'Tasks queued')}
-                  <button onClick={() => setPanel('activity')}>
-                    <PanelRight size={12} />
-                  </button>
-                </div>
-              )}
-              <QuotaControl
-                agents={agents}
-                completedTurns={tasks
-                  .filter((t) => ['completed', 'failed', 'cancelled'].includes(t.status))
-                  .map((t) => `${t.id}:${t.status}`)
-                  .join('|')}
-                en={!!en}
-              />
-              <div
-                className={`composer ${conversation?.stopped ? 'stopped' : ''}`}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault()
-                  if (e.dataTransfer.files.length) {
-                    if (project)
-                      void window.agenthub
-                        .attachFiles(project.id, Array.from(e.dataTransfer.files).slice(0, 8))
-                        .then((files) =>
-                          setAttachments((current) => [...current, ...files].slice(0, 8)),
-                        )
-                        .catch((error) => set({ error: String(error) }))
-                  }
-                }}
-              >
-                {reply && (
-                  <div className="reply-bar">
-                    <Reply size={13} />
-                    <span>{reply.content.slice(0, 100)}</span>
-                    <button onClick={() => setReply(undefined)}>
-                      <X size={13} />
-                    </button>
-                  </div>
-                )}
-                {!!attachments.length && (
-                  <div className="attachments">
-                    {attachments.map((a, i) => (
-                      <span key={i}>
-                        {a.preview && <img src={a.preview} alt={a.name} />}
-                        <Paperclip size={12} />
-                        {a.name}
-                        <button
-                          onClick={() => {
-                            void perform({ op: 'attachment.discard', id: a.id }).then(() =>
-                              setAttachments((current) => current.filter((_, j) => i !== j)),
-                            )
-                          }}
-                        >
-                          <X size={12} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {attachments.some((a) => a.kind === 'image') && (
-                  <small className="attachment-help">
-                    {text(
-                      '三家均可辨識圖片；Antigravity 使用原生本機讀圖工具。最多 4 張，每張 5 MiB。',
-                      'All three support images; Antigravity uses its native local image tool. Up to 4 images, 5 MiB each.',
-                    )}
-                  </small>
-                )}
-                <textarea
-                  ref={composer}
-                  aria-label="Message"
-                  rows={3}
-                  onPaste={(e) => {
-                    if (
-                      project &&
-                      Array.from(e.clipboardData.items).some((item) =>
-                        item.type.startsWith('image/'),
-                      )
-                    ) {
-                      e.preventDefault()
-                      void perform({ op: 'attachment.clipboard', projectId: project.id }).then(
-                        (value) =>
-                          setAttachments((current) =>
-                            [...current, value as Attachment].slice(0, 8),
-                          ),
-                      )
-                    }
-                  }}
-                  disabled={!conversation || conversation.stopped}
-                  placeholder={
-                    !project
-                      ? text('選擇專案後開始對話…', 'Choose a project to begin…')
-                      : conversation?.stopped
-                        ? text(
-                            '工作已停止，按繼續以接受新任務。',
-                            'Work stopped. Resume to accept new tasks.',
-                          )
-                        : text(
-                            '描述你的想法，使用 @ 指派代理…',
-                            'Describe what you want to build. Use @ to bring in an agent…',
-                          )
-                  }
-                  value={input}
-                  onChange={(e) => {
-                    setInput(e.target.value)
-                    setMentionOpen(e.target.value.endsWith('@'))
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-                      e.preventDefault()
-                      if (!mentionOpen) void send()
-                    }
-                  }}
-                />
-                <div className="composer-toolbar">
-                  <div className="composer-left">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      title={text('附加專案檔案', 'Attach project files')}
-                      disabled={!project}
-                      onClick={() => void attach()}
-                    >
-                      <Plus size={19} />
-                    </Button>
-                    <div className="mention-container">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setMentionOpen(!mentionOpen)}
-                      >
-                        <AtSign size={14} />
-                        <span>
-                          {recipients.length
-                            ? recipients
-                                .map((id) => agents.find((a) => a.id === id)?.name)
-                                .filter(Boolean)
-                                .join(', ')
-                            : text('本機筆記', 'Local note')}
-                        </span>
-                        <ChevronDown size={12} />
-                      </Button>
-                      {mentionOpen && (
-                        <div className="mention-menu">
-                          <small>{text('指派接收者', 'RECIPIENTS')}</small>
-                          <button onClick={() => selectAgent('all')}>
-                            <Bot size={15} />
-                            @All <span>{text('所有代理', 'All agents')}</span>
-                          </button>
-                          {agents.map((a) => (
-                            <button key={a.id} onClick={() => selectAgent(a.id)}>
-                              <span className={`tiny-dot ${a.provider}`} />
-                              {a.name}
-                              <span>{recipients.includes(a.id) ? '✓' : ''}</span>
-                            </button>
-                          ))}
-                          <button
-                            onClick={() => {
-                              setRecipients([])
-                              setMentionOpen(false)
-                            }}
-                          >
-                            <MessageSquare size={14} />
-                            {text('僅儲存筆記', 'Save note only')}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="composer-right">
-                    {conversation && (
-                      <ModelControl
-                        key={conversation.id}
-                        conversation={conversation}
-                        agents={agents}
-                        recipients={recipients}
-                        perform={perform}
-                        pending={setModelSaving}
-                        en={!!en}
-                      />
-                    )}
-                    {conversation && (
-                      <>
-                        <select
-                          aria-label="Collaboration mode"
-                          value={conversation.mode}
-                          disabled={active}
-                          onChange={(e) =>
-                            void perform({
-                              op: 'conversation.configure',
-                              id: conversation.id,
-                              mode: e.target.value,
-                              supervisorId: conversation.supervisorId || agents[0]?.id || '',
-                            })
-                          }
-                        >
-                          <option value="manual">{text('手動', 'Manual')}</option>
-                          <option value="collaborative">{text('協作', 'Collaborative')}</option>
-                          <option value="supervisor">{text('主管', 'Supervisor')}</option>
-                        </select>
-                        {conversation.mode === 'supervisor' && (
-                          <select
-                            aria-label="Supervisor"
-                            disabled={active}
-                            value={conversation.supervisorId}
-                            onChange={(e) =>
-                              void perform({
-                                op: 'conversation.configure',
-                                id: conversation.id,
-                                mode: 'supervisor',
-                                supervisorId: e.target.value,
-                              })
-                            }
-                          >
-                            {agents.map((a) => (
-                              <option key={a.id} value={a.id}>
-                                {a.name}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </>
-                    )}
-                    {conversation?.stopped ? (
-                      <Button
-                        size="icon"
-                        title="Resume"
-                        onClick={() => void perform({ op: 'resume', conversationId })}
-                      >
-                        <Play size={15} />
-                      </Button>
-                    ) : (
-                      <>
-                        {active && (
-                          <Button
-                            size="icon"
-                            variant="danger"
-                            title="Stop agents"
-                            onClick={() => void perform({ op: 'stop', conversationId })}
-                          >
-                            <Square size={13} fill="currentColor" />
-                          </Button>
-                        )}
-                        <Button
-                          size="icon"
-                          title="Send"
-                          aria-label="Send"
-                          disabled={
-                            !conversation ||
-                            (!input.trim() && !attachments.length) ||
-                            sending ||
-                            modelSaving
-                          }
-                          onClick={() => void send()}
-                        >
-                          <ArrowUp size={19} />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="composer-caption">
-                <span>
-                  <ShieldCheck size={11} />
-                  {text(
-                    '本機優先 · 原生代理 · 操作可審核',
-                    'Local first · Native agents · Reviewable actions',
-                  )}
-                </span>
-                <span>Shift ↵ {text('換行', 'new line')}</span>
-              </div>
-            </div>
+            <ChatComposer
+              active={active}
+              tasks={tasks}
+              snapshot={snapshot}
+              activities={activities}
+              text={text}
+              en={en}
+              setPanel={setPanel}
+              agents={agents}
+              conversation={conversation}
+              conversationId={conversationId}
+              project={project}
+              setAttachments={setAttachments}
+              set={set}
+              reply={reply}
+              setReply={setReply}
+              attachments={attachments}
+              perform={perform}
+              composer={composer}
+              input={input}
+              setInput={setInput}
+              setMentionOpen={setMentionOpen}
+              mentionOpen={mentionOpen}
+              send={send}
+              attach={attach}
+              recipients={recipients}
+              selectAgent={selectAgent}
+              setRecipients={setRecipients}
+              setModelSaving={setModelSaving}
+              sending={sending}
+              modelSaving={modelSaving}
+            />
           </div>
           {panel && project && (
             <SidePanel

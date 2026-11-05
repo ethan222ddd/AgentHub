@@ -1,4 +1,16 @@
-# Implementation status — v0.12.0
+# Implementation status — v0.12.1
+
+## 本輪：Git、模組拆分與 Windows CI（2026-11-05）
+
+建立 `main` 與原始碼基準 `50090f7`，忽略安裝包、生成目錄、本機維護證據和資料庫。指定遠端為 ethan222ddd/AgentHub。拆分回合執行、結構化協作、批准與審查模組，並把聊天室、設定、活動／變更、範本介面與樣式分成獨立模組；容器保留原有狀態與協調，沒有變更 Runtime、Schema 或權限政策。
+
+入口檔行數（含空行）：Orchestrator 1329→687、App 1238→598、Settings 883→182、SidePanel 849→198、WorkflowEditor 699→189、styles.css 1943→11。CSS 的 323 個頂層規則按原順序保留。未硬拆仍具單一職責的 Git 整合、供應商協定與 IPC allowlist。模組地圖與具體原因見 DEVELOPMENT。
+
+新增 Repository 外、正規化路徑的測試 TEMP 及清理，避免測試空資料夾繼承本專案 Git。保持產品拒絕巢狀 Repository／重新導向路徑的政策。修正 CI 的 Electron 安裝指令，加入原始碼追蹤檢查、分支建置去重、Portable 上傳及失敗診斷。
+
+本機 Typecheck／ESLint／Build、34 項相關測試及 7 項 Electron E2E 通過；另 1 項本機未先打包的案例略過，由遠端打包後執行。遠端 CI 結果以 Actions 真實 run／SHA 為準，未把本機通過當成遠端已成功。沒有重跑付費 Live。
+
+以下保留 v0.12.0 歷史紀錄。
 
 ## 本輪：可編輯工作流程範本（2026-11-05）
 

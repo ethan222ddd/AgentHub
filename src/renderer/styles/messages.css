@@ -1,0 +1,173 @@
+.chat-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 0 35px;
+}
+.welcome {
+  max-width: 760px;
+  min-height: 100%;
+  padding: 70px 0 30px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.welcome-symbol {
+  width: 64px;
+  height: 64px;
+  border: 1px solid var(--border);
+  border-radius: 19px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  background: var(--sidebar);
+  color: var(--accent);
+  margin-bottom: 28px;
+  transform: rotate(-5deg);
+}
+.welcome-symbol > svg {
+  transform: rotate(5deg);
+}
+.welcome-symbol span {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--bg);
+  border-radius: 4px;
+  background: #a9b99a;
+  right: -5px;
+  top: 8px;
+}
+.welcome-symbol span:last-child {
+  width: 8px;
+  height: 8px;
+  background: #d3b193;
+  top: auto;
+  bottom: 0;
+  left: -4px;
+}
+.eyebrow {
+  font-size: 9px;
+  letter-spacing: 2.4px;
+  color: var(--muted);
+  font-weight: 500;
+  margin-bottom: 15px;
+}
+.welcome h2 {
+  font-size: 28px;
+  letter-spacing: -0.8px;
+  font-weight: 500;
+  margin: 0 0 15px;
+}
+.welcome > p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 0 0 33px;
+}
+.team-roster {
+  display: flex;
+  width: 100%;
+  max-width: 620px;
+  justify-content: center;
+  margin: 4px 0 28px;
+}
+.team-roster button {
+  flex: 1;
+  max-width: 205px;
+  padding: 14px 14px 16px;
+  border-radius: 9px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+.team-roster button + button::before {
+  content: '';
+  height: 70px;
+  width: 1px;
+  background: var(--border);
+  position: absolute;
+  left: 0;
+  top: 25px;
+}
+.team-roster button:hover,
+.team-roster button.chosen {
+  background: var(--sidebar);
+}
+.agent-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+.codex {
+  background: #e9eee6;
+  color: #4d6243;
+}
+.claude {
+  background: #f3e9e1;
+  color: #ae7855;
+}
+.antigravity {
+  background: #e8edf2;
+  color: #677e9f;
+}
+[data-theme='dark'] .codex {
+  background: #2c3827;
+  color: #bbcca6;
+}
+[data-theme='dark'] .claude {
+  background: #3d2e24;
+  color: #dcb194;
+}
+[data-theme='dark'] .antigravity {
+  background: #26323e;
+  color: #9bb1cd;
+}
+.team-roster strong {
+  font-size: 12px;
+  font-weight: 550;
+}
+.team-roster small {
+  margin-top: 5px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.roster-state {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 9px;
+  margin-top: 11px;
+}
+.setup-note {
+  max-width: 530px;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.7;
+}
+.setup-note svg {
+  margin-top: 1px;
+}
+.setup-link {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 11px;
+  margin-top: 20px;
+  color: var(--accent);
+}
+.setup-link svg {
+  transform: rotate(45deg);
+}

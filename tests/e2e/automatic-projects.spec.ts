@@ -1,4 +1,5 @@
-import { test, expect, _electron as electron } from '@playwright/test'
+import { directory } from '../helpers'
+import { test, expect, _electron as electron } from './fixtures'
 import { mkdir, mkdtemp, writeFile, readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { git } from '../../src/main/git/workspaces'
@@ -8,8 +9,8 @@ test('Electron automatically prepares blank and existing source folders, safely 
   const base = resolve('.local/e2e-automatic')
   await mkdir(base, { recursive: true })
   const profile = await mkdtemp(join(base, 'profile-')),
-    blank = await mkdtemp(join(base, '空白 專案-')),
-    existing = await mkdtemp(join(base, 'existing-'))
+    blank = await directory('空白 專案-'),
+    existing = await directory('existing-')
   await writeFile(join(existing, 'index.html'), '<html><body>Existing source</body></html>')
   await writeFile(join(existing, '.env'), 'API_KEY=NON_SECRET_TEST_SENTINEL')
   await writeFile(join(existing, 'private.pem'), '-----BEGIN PRIVATE KEY-----\nTEST ONLY')

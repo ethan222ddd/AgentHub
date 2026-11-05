@@ -1,4 +1,5 @@
-import { test, expect, _electron as electron } from '@playwright/test'
+import { directory } from '../helpers'
+import { test, expect, _electron as electron } from './fixtures'
 import { mkdir, mkdtemp, readFile } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
 import { existsSync, readFileSync } from 'node:fs'
@@ -7,7 +8,7 @@ test('real Electron: secure bridge, project selection, SQLite history, theme and
   const root = resolve('.local/e2e')
   await mkdir(root, { recursive: true })
   const data = await mkdtemp(join(root, 'profile-'))
-  const project = await mkdtemp(join(root, 'project-'))
+  const project = await directory('project-')
   const env: Record<string, string> = Object.fromEntries(
     Object.entries(process.env).filter(
       (entry): entry is [string, string] => typeof entry[1] === 'string',

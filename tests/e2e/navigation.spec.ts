@@ -1,4 +1,4 @@
-import { test, expect, _electron as electron } from '@playwright/test'
+import { test, expect, _electron as electron } from './fixtures'
 import { mkdir, mkdtemp } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
 import { Store } from '../../src/main/database/store'

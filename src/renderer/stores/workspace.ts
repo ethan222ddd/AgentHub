@@ -115,3 +115,4 @@ export const useWorkspace = create<State>((set, get) => ({
     }
   },
 }))
+export type WorkspaceState = State

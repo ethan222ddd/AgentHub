@@ -1,0 +1,287 @@
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: #0000004a;
+  display: grid;
+  place-items: center;
+  z-index: 50;
+  padding: 30px;
+  backdrop-filter: blur(3px);
+}
+.settings-modal {
+  background: var(--bg);
+  width: min(860px, 100%);
+  height: min(760px, 90vh);
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 80px #00000025;
+  overflow: hidden;
+}
+.workflow-modal {
+  width: min(1040px, 96vw);
+}
+.workflow-modal .settings-layout > nav {
+  flex-basis: 210px;
+  overflow: auto;
+}
+.workflow-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-block: 12px;
+}
+.workflow-actions > strong {
+  flex: 1;
+}
+.workflow-role {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-block: 10px;
+}
+.workflow-role > input,
+.workflow-role > label {
+  min-width: 0;
+  flex: 1;
+}
+.workflow-role select {
+  max-width: 100%;
+}
+.workflow-step fieldset {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 15px;
+}
+.workflow-step legend {
+  color: var(--muted);
+  font-size: 11px;
+  padding-inline: 5px;
+}
+.workflow-step fieldset .inline {
+  padding-block: 4px;
+}
+.workflow-notice {
+  color: var(--text);
+  border-left: 2px solid var(--border);
+  padding-left: 12px;
+  overflow-wrap: anywhere;
+}
+.workflow-plan {
+  padding-left: 22px;
+  font-size: 12px;
+  line-height: 1.9;
+}
+.workflow-strip {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 5px 22px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+}
+.workflow-strip > span {
+  flex: 1;
+}
+@media (max-width: 800px) {
+  .workflow-modal .settings-layout > nav {
+    flex-basis: 155px;
+  }
+  .workflow-modal .settings-content {
+    padding: 18px;
+  }
+}
+.settings-modal > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.settings-modal h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.settings-layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.settings-layout > nav {
+  flex: 0 0 160px;
+  background: var(--sidebar);
+  padding: 20px 12px;
+  border-right: 1px solid var(--border);
+}
+.settings-layout > nav button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 6px;
+  padding: 11px 13px;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 5px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.settings-layout > nav button.selected {
+  background: var(--selected);
+  color: var(--text);
+}
+.settings-content {
+  flex: 1;
+  overflow: auto;
+  padding: 25px 30px;
+}
+.settings-content h3 {
+  font-size: 14px;
+  margin: 0 0 16px;
+  font-weight: 550;
+}
+.settings-content label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 11px;
+  margin-bottom: 17px;
+}
+.settings-content > label > select {
+  width: 230px;
+}
+.settings-content label input,
+.settings-content textarea {
+  width: 100%;
+  font-size: 12px;
+}
+.settings-content .inline {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  margin: 0;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.settings-content .inline input {
+  width: 13px;
+}
+.settings-content ul {
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 2;
+  margin: 20px 0;
+}
+.settings-content > p {
+  line-height: 2;
+  font-size: 12px;
+}
+.settings-modal > footer {
+  border-top: 1px solid var(--border);
+  padding: 13px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.section-title h3,
+.section-title h4 {
+  margin: 0;
+}
+.agent-setting {
+  border-top: 1px solid var(--border);
+  padding: 22px 0 5px;
+}
+.agent-setting > .section-title {
+  margin-bottom: 10px;
+}
+.agent-setting strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.runtime-detail {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--sidebar);
+  padding: 9px;
+  border-radius: 6px;
+  margin: 10px 0 17px;
+}
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 17px;
+}
+.add-agent {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0 25px;
+}
+.add-agent input {
+  flex: 1;
+  min-width: 0;
+}
+.data-path {
+  display: block;
+  font-family: Consolas, monospace;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  background: var(--sidebar);
+  padding: 12px;
+  border-radius: 6px;
+}
+.rename-dialog {
+  width: 360px;
+  background: var(--bg);
+  padding: 25px;
+  border-radius: 12px;
+}
+.rename-dialog > input {
+  width: 100%;
+  margin: 12px 0;
+}
+.rename-dialog > h3 {
+  font-size: 14px;
+  margin: 0;
+}
+.rename-dialog .actions {
+  justify-content: flex-end;
+}
+.loading {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  color: var(--muted);
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

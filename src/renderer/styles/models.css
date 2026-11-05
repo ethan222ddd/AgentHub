@@ -1,0 +1,80 @@
+.model-control {
+  position: relative;
+  min-width: 0;
+  max-width: 240px;
+}
+.model-control > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+  list-style: none;
+}
+.model-control > summary span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.model-menu {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 0;
+  width: min(360px, calc(100vw - 40px));
+  max-height: 65vh;
+  overflow: auto;
+  padding: 16px;
+  z-index: 40;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: 0 10px 40px #0002;
+}
+.model-menu section {
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.model-menu label {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12px;
+}
+.model-menu select,
+.model-menu input {
+  width: 100%;
+  min-width: 0;
+}
+.context-panel {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.context-panel summary {
+  cursor: pointer;
+  padding: 7px 0;
+}
+.context-panel pre {
+  white-space: pre-wrap;
+  max-height: 180px;
+  overflow: auto;
+  font-size: 11px;
+}
+.composer-toolbar {
+  flex-wrap: wrap;
+}
+@media (max-width: 1100px) {
+  .model-control {
+    max-width: 165px;
+  }
+  .model-menu {
+    left: auto;
+    right: 0;
+  }
+}
+@theme {
+  --font-sans: 'Segoe UI Variable', 'Segoe UI', 'Microsoft JhengHei UI', sans-serif;
+}

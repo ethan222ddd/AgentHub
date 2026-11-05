@@ -1,4 +1,5 @@
-import { test, expect, _electron as electron } from '@playwright/test'
+import { directory } from '../helpers'
+import { test, expect, _electron as electron } from './fixtures'
 import { mkdir, mkdtemp } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { Store } from '../../src/main/database/store'
@@ -6,7 +7,7 @@ test('chat model/effort and context pins persist without executing any agent', a
   const base = resolve('.local/e2e-models-context')
   await mkdir(base, { recursive: true })
   const profile = await mkdtemp(join(base, 'profile-')),
-    project = await mkdtemp(join(base, 'project-'))
+    project = await directory('project-')
   const seed = new Store(join(profile, 'agenthub.sqlite'))
   const p = seed.addProject(project, 'Model controls'),
     c = seed.snapshot().conversations[0]

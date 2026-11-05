@@ -1,11 +1,12 @@
-import { test, expect, _electron as electron } from '@playwright/test'
+import { directory } from '../helpers'
+import { test, expect, _electron as electron } from './fixtures'
 import { mkdir, mkdtemp, writeFile, unlink, readFile } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
 test('real Electron imports immutable images, previews, exports and restores after restart', async () => {
   const base = resolve('.local/e2e-images')
   await mkdir(base, { recursive: true })
   const profile = await mkdtemp(join(base, 'profile-'))
-  const project = await mkdtemp(join(base, 'project-'))
+  const project = await directory('project-')
   const path = join(project, 'visual.png')
   const env = Object.fromEntries(
     Object.entries(process.env).filter((v): v is [string, string] => typeof v[1] === 'string'),

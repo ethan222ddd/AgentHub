@@ -1,4 +1,5 @@
-import { test, expect, _electron as electron } from '@playwright/test'
+import { directory } from '../helpers'
+import { test, expect, _electron as electron } from './fixtures'
 import { mkdir, mkdtemp } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { Store } from '../../src/main/database/store'
@@ -8,7 +9,7 @@ test('quota UI distinguishes unsupported API/headless balances without using pai
   const base = resolve('.local/e2e-quota')
   await mkdir(base, { recursive: true })
   const profile = await mkdtemp(join(base, 'profile-')),
-    project = await mkdtemp(join(base, 'project-'))
+    project = await directory('project-')
   const seed = new Store(join(profile, 'agenthub.sqlite'))
   seed.addProject(project, 'Quota controls')
   for (const agent of seed.list<AgentProfile>('agents'))
