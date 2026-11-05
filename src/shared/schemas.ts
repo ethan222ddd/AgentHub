@@ -176,6 +176,7 @@ export const workflowTemplateSchema = z
 export const requestSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('workflow.save'), template: workflowTemplateSchema }).strict(),
   z.object({ op: z.literal('workflow.delete'), id }).strict(),
+  z.object({ op: z.literal('overlaps.scan'), projectId: id }).strict(),
   z
     .object({
       op: z.literal('decision.save'),

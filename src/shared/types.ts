@@ -236,7 +236,19 @@ export interface Settings {
   timeoutMs: number
   supervisorId: string
 }
+/** One file changed, but not yet integrated, in two or more agents' workspaces. */
+export interface FileOverlap {
+  path: string
+  agents: { agentId: string; workspaceId: string; uncommitted: boolean }[]
+}
+export interface ProjectOverlaps {
+  files: FileOverlap[]
+  scannedAt: string
+  /** Workspaces that could not be inspected (missing path, Git error). */
+  skipped: number
+}
 export interface Snapshot {
+  overlaps?: Record<string, ProjectOverlaps>
   workflowTemplates: WorkflowTemplate[]
   workflowRuns: WorkflowRun[]
   usage: UsageRecord[]

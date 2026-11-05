@@ -23,6 +23,7 @@ import { QuotaService } from '../agents/quota-service'
 import { processSupervisor } from '../agents/process-owner'
 import type { DesktopNotifications } from '../app/notifications'
 import type { WorkflowService } from '../workflows/service'
+import type { OverlapMonitor } from '../git/overlaps'
 
 export function makeHandler(
   store: Store,
@@ -33,6 +34,7 @@ export function makeHandler(
   window: () => BrowserWindow,
   notifications?: DesktopNotifications,
   workflows?: WorkflowService,
+  overlaps?: OverlapMonitor,
 ) {
   const backups = new BackupManager(app.getPath('userData'))
   const quotas = new QuotaService(orchestrator.adapters)
@@ -111,7 +113,15 @@ export function makeHandler(
       case 'processes.inspect':
         return processSupervisor.inspect()
       case 'snapshot':
-        return { ...store.snapshot(), diagnosticsPath: diagnosticsPath() }
+        return {
+          ...store.snapshot(),
+          diagnosticsPath: diagnosticsPath(),
+          overlaps: overlaps?.all() || {},
+        }
+      case 'overlaps.scan':
+        store.require<Project>('projects', request.projectId)
+        if (!overlaps) throw new Error('Overlap monitor unavailable')
+        return overlaps.scan(request.projectId)
       case 'docs.guide': {
         const path = app.isPackaged
           ? join(process.resourcesPath, 'docs', 'USER_GUIDE.html')

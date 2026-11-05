@@ -6,6 +6,7 @@ import {
   Circle,
   FolderPlus,
   GitBranch,
+  GitMerge,
   Search,
   ShieldCheck,
   Workflow,
@@ -335,6 +336,20 @@ export function App() {
               </Button>
             </div>
           ))}
+        {project && !!snapshot.overlaps?.[project.id]?.files.length && panel !== 'tasks' && (
+          <div className="overlap-strip" role="status">
+            <GitMerge size={15} />
+            <span>
+              {text(
+                `可能的合併衝突：${snapshot.overlaps[project.id].files.length} 個檔案同時被多位代理修改`,
+                `Possible merge conflict: ${snapshot.overlaps[project.id].files.length} files changed by several agents`,
+              )}
+            </span>
+            <Button size="sm" variant="ghost" onClick={() => setPanel('tasks')}>
+              {text('查看檔案', 'View files')}
+            </Button>
+          </div>
+        )}
         {searchOpen && (
           <div className="search-strip">
             <Search size={16} />
@@ -549,6 +564,7 @@ export function App() {
               allTasks={snapshot.tasks}
               conversations={snapshot.conversations}
               openQueue={() => setQueueOpen(true)}
+              overlaps={snapshot.overlaps?.[project.id]}
             />
           )}
         </div>

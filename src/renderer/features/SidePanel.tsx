@@ -7,6 +7,7 @@ import type {
   Artifact,
   Conversation,
   Project,
+  ProjectOverlaps,
   Review,
   Task,
   TestRun,
@@ -45,6 +46,7 @@ export function SidePanel({
   allTasks,
   conversations,
   openQueue,
+  overlaps,
 }: {
   tab: string
   setTab(tab: string): void
@@ -67,6 +69,7 @@ export function SidePanel({
   allTasks: Task[]
   conversations: Conversation[]
   openQueue(): void
+  overlaps?: ProjectOverlaps
 }) {
   const [workspaceId, setWorkspaceId] = useState(workspaces[0]?.id || '')
   const [diff, setDiff] = useState<Diff>()
@@ -222,6 +225,9 @@ export function SidePanel({
             allAgents={allAgents}
             en={en}
             openTask={openTask}
+            overlaps={overlaps}
+            projectId={project.id}
+            perform={perform}
           />
         ) : tab === 'usage' ? (
           <UsageTrends

@@ -21,6 +21,7 @@ import { applyPendingRestore } from './database/backup'
 import { DesktopNotifications } from './app/notifications'
 import { WindowsNotificationSink } from './app/notifications-native'
 import { WorkflowService } from './workflows/service'
+import { OverlapMonitor } from './git/overlaps'
 import type { AppEvent, Conversation, Task } from '../shared/types'
 const dataDirectory =
   app.commandLine.getSwitchValue('user-data-dir') ||
@@ -41,6 +42,7 @@ let tests: TestRunner
 let workflows: WorkflowService | undefined
 let quitting = false
 let notifications: DesktopNotifications | undefined
+let overlaps: OverlapMonitor | undefined
 let closeServices = async () => {}
 const single = app.requestSingleInstanceLock()
 if (!single) app.quit()
@@ -79,6 +81,7 @@ else {
       ])
       orchestrator = new Orchestrator(store, adapters, (event) => {
         notifications?.accept(event)
+        if (event.type === 'changed') overlaps?.observe()
         if (win && !win.isDestroyed()) win.webContents.send('agenthub:event', event)
       })
       const manager = new WorkspaceManager(store, join(directory, 'workspaces'))
@@ -88,6 +91,9 @@ else {
         orchestrator.changed(),
       )
       workflows = new WorkflowService(store, orchestrator)
+      overlaps = new OverlapMonitor(store, () => orchestrator.changed())
+      overlaps.start()
+      overlaps.observe()
       for (const project of store.snapshot().projects) {
         if (project.autoManaged === undefined)
           store.put('projects', { ...project, autoManaged: true })
@@ -154,6 +160,7 @@ else {
         () => win!,
         notifications,
         workflows,
+        overlaps,
       )
       closeServices = handler.dispose
       ipcMain.handle('agenthub:invoke', async (event, raw: unknown) => {
@@ -218,6 +225,7 @@ else {
     event.preventDefault()
     quitting = true
     notifications?.dispose()
+    overlaps?.dispose()
     processSupervisor.stopAccepting()
     const drain = async (stage: string, work: Promise<unknown>) => {
       trace('app.shutdown.stage', { stage, status: 'started' })

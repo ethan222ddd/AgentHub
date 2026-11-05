@@ -1,0 +1,86 @@
+/* Early warning for files several agents are changing. */
+.overlaps {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.overlaps.has-overlaps {
+  border-color: color-mix(in srgb, var(--tone-warning) 45%, var(--border));
+  background: color-mix(in srgb, var(--tone-warning) 6%, var(--surface));
+}
+.overlaps > header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+.overlaps.has-overlaps > header {
+  color: var(--tone-warning);
+}
+.overlaps h5 {
+  flex: 1;
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+.overlaps > .muted {
+  margin: 6px 0 4px;
+}
+.overlap-files {
+  list-style: none;
+  margin: 6px 0 4px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.overlap-files li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 10px;
+  font-size: 12px;
+}
+.overlap-files code {
+  font-family: Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+.overlap-agents {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--muted);
+}
+.overlap-agents > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.overlap-agents em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--tone-warning);
+}
+.overlap-meta {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.overlap-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 24px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--tone-warning);
+  background: color-mix(in srgb, var(--tone-warning) 6%, var(--bg));
+}
+.overlap-strip span {
+  flex: 1;
+  color: var(--text);
+}
