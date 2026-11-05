@@ -17,13 +17,16 @@
 }
 .tabs {
   display: flex;
-  gap: 18px;
+  gap: 16px;
   align-self: stretch;
 }
 .tabs > button {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   position: relative;
+}
+.tabs > button:hover {
+  color: var(--text);
 }
 .tabs > button.active {
   color: var(--text);
@@ -46,13 +49,13 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   margin: 5px 0 15px;
 }
 .panel-body h4 span {
   margin-left: auto;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   font-weight: 400;
 }
@@ -62,16 +65,16 @@
 .panel-body > select {
   width: 100%;
   margin: 17px 0 10px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .panel-body > .button {
   width: 100%;
   margin: 6px 0;
-  font-size: 11px;
+  font-size: 12px;
 }
 .panel-empty {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.9;
   padding: 10px 0;
 }
@@ -79,7 +82,7 @@
 .activity {
   border-bottom: 1px solid var(--border);
   padding: 10px 0;
-  font-size: 11px;
+  font-size: 12px;
 }
 .task summary,
 .activity summary {
@@ -99,7 +102,7 @@
 .activity small {
   display: block;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10.5px;
   margin-top: 4px;
 }
 .task-detail {
@@ -115,15 +118,15 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font-family: Consolas, monospace;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.7;
   padding: 10px;
   border-radius: 5px;
   background: var(--code);
 }
 .status-dot {
-  width: 5px;
-  height: 5px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--muted);
   display: inline-block;
@@ -133,10 +136,10 @@
   margin-top: 6px;
 }
 .status-dot.completed {
-  background: #829c6c;
+  background: var(--tone-good);
 }
 .status-dot.running {
-  background: #829c6c;
+  background: var(--tone-active);
   animation: pulse 1.5s infinite;
 }
 .status-dot.failed {
@@ -144,7 +147,7 @@
 }
 .status-dot.waiting_user,
 .status-dot.blocked {
-  background: #c9954d;
+  background: var(--tone-warning);
 }
 .status-dot.waiting_agent,
 .status-dot.paused,
@@ -180,19 +183,19 @@
   flex-wrap: wrap;
 }
 .approval {
-  background: color-mix(in srgb, #b68c50 8%, var(--surface));
-  border: 1px solid #b68c5050;
-  border-radius: 9px;
-  padding: 13px;
+  background: color-mix(in srgb, var(--tone-warning) 6%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--tone-warning) 30%, var(--border));
+  border-radius: 10px;
+  padding: 14px;
   margin-bottom: 20px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .approval > div:first-child {
   display: flex;
   align-items: center;
   gap: 7px;
   margin-bottom: 11px;
-  color: #b08a51;
+  color: var(--tone-warning);
 }
 .approval > b {
   display: block;
@@ -200,7 +203,7 @@
   overflow-wrap: anywhere;
 }
 .approval > small {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   line-height: 1.7;
   display: block;
@@ -208,7 +211,7 @@
 .panel-body .diff-view {
   white-space: pre;
   max-height: 500px;
-  font-size: 10px;
+  font-size: 11px;
 }
 .git-status {
   color: var(--accent);
@@ -219,11 +222,11 @@
   padding-top: 19px;
 }
 .merge-preview > code {
-  font-size: 10px;
+  font-size: 11px;
 }
 .muted {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.85;
 }
 .error-text {

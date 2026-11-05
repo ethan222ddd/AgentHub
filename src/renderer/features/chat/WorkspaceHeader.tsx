@@ -85,6 +85,7 @@ export function WorkspaceHeader({
             >
               {a.name[0]}
               <i />
+              <span className="sr-only">{a.name}</span>
             </span>
           )
         })}

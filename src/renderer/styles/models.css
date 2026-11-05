@@ -61,7 +61,7 @@
   white-space: pre-wrap;
   max-height: 180px;
   overflow: auto;
-  font-size: 11px;
+  font-size: 12px;
 }
 .composer-toolbar {
   flex-wrap: wrap;

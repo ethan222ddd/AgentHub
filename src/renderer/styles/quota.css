@@ -1,12 +1,12 @@
 .quota-control {
   position: relative;
-  font-size: 11px;
+  font-size: 12px;
   margin-bottom: 10px;
 }
 .project-readiness {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.7;
 }
 .quota-control summary {
@@ -45,7 +45,7 @@
 }
 .quota-menu p {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.7;
   margin-block: 10px;
 }
@@ -56,7 +56,7 @@
 .quota-menu small {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   margin-top: 7px;
 }
 .quota-window {

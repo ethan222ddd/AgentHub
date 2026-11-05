@@ -53,7 +53,7 @@
 .composer-toolbar select {
   border: 0;
   background: transparent;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   padding: 6px;
   max-width: 130px;
@@ -63,7 +63,7 @@
   align-items: center;
   justify-content: space-between;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10.5px;
   padding: 10px 5px 0;
 }
 .composer-caption span:first-child {
@@ -93,7 +93,7 @@
 .mention-menu > small {
   display: block;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10.5px;
   padding: 8px;
   letter-spacing: 1px;
 }
@@ -114,7 +114,7 @@
 }
 .mention-menu button > span:last-child {
   margin-left: auto;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
 }
 .tiny-dot {
@@ -136,7 +136,7 @@
   background: var(--sidebar);
   padding: 8px;
   margin-bottom: 8px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 .reply-bar span {
@@ -159,7 +159,7 @@
   border: 1px solid var(--border);
   padding: 4px 6px;
   border-radius: 6px;
-  font-size: 10px;
+  font-size: 11px;
 }
 .attachments img {
   width: 26px;
@@ -172,7 +172,7 @@
   gap: 7px;
   color: var(--muted);
   padding: 0 8px 11px;
-  font-size: 10px;
+  font-size: 11px;
 }
 .live-status > button {
   margin-left: auto;
@@ -206,7 +206,7 @@
 }
 .attachment-help {
   display: block;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.6;
   color: var(--muted);
   padding: 0 18px 8px;
@@ -231,7 +231,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 .image-viewer {
@@ -259,7 +259,7 @@
 .image-viewer > small {
   overflow-wrap: anywhere;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 .mini-avatar.waiting i {
   background: #bd9653;
@@ -305,7 +305,7 @@
 }
 .message-meta time {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   opacity: 0.65;
 }
 .message-meta > button {
@@ -317,10 +317,10 @@
   opacity: 1;
 }
 .message-tag {
-  font-size: 9px;
+  font-size: 10.5px;
   color: var(--accent);
 }
 .message-error {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--danger);
 }

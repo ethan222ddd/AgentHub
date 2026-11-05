@@ -60,7 +60,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-block: 14px 22px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .usage-summary span {
   display: flex;
@@ -98,13 +98,13 @@
   display: grid;
   gap: 7px;
   margin-block: 14px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .panel-body .inline {
   display: flex;
   gap: 7px;
   align-items: center;
-  font-size: 11px;
+  font-size: 12px;
   margin-block: 8px;
 }
 .panel-body .inline input {
