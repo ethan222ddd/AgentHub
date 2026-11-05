@@ -6,6 +6,7 @@ import { join, resolve } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
 import { createServer } from 'node:net'
 import { killTree, spawnOwned } from '../src/main/agents/process'
+import { cleanupTestDirectories, directory as fixtureDirectory } from '../tests/helpers'
 import type { Snapshot } from '../src/shared/types'
 const { version } = JSON.parse(await readFile('package.json', 'utf8')) as { version: string }
 const base = resolve('.local/portable-acceptance')
@@ -204,8 +205,9 @@ try {
       }
     }),
   ).toBe(true)
-  const project = join(directory, 'Selected Project')
-  await mkdir(project)
+  // The selected folder must sit outside AgentHub's own Git repository, or automatic setup
+  // correctly refuses to initialise a nested repository and reports attention.
+  const project = await fixtureDirectory('portable-project-')
   await app.evaluate(({ dialog }, path) => {
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] })
   }, project)
@@ -250,4 +252,5 @@ try {
 } finally {
   await app.close()
   await writeFile(join(base, 'report.json'), JSON.stringify(report, null, 2))
+  await cleanupTestDirectories()
 }
