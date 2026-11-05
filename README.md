@@ -8,6 +8,15 @@
 
 [Windows CI 已通過](https://github.com/ethan222ddd/AgentHub/actions/runs/41943842088)：27 個測試檔／161 項離線測試、11 項 Electron E2E（含打包版啟動）、NSIS 與 Portable 建置成功。驗證程式碼為 `07da02579301a2e045daf75bca8df1ffd240ca0c`；本輪未重跑付費 Live。
 
+**協作與交付工具（PR #1、#2，尚未合併）**：
+
+- **看進度**：任務依賴圖／看板、檔案衝突預警、用量與花費趨勢。
+- **控制**：鍵盤批准佇列（`Ctrl+Shift+A`）、先提計畫（唯讀計畫，批准後才改檔）、專案決策紀錄。
+- **回饋**：結構化交接摘要、Diff 行內意見。
+- **交付**：用你自己登入的 GitHub CLI 匯入 Issue、從任務開 PR，CI 失敗時交回代理修正。
+
+用法見使用手冊第 19 章。
+
 首次使用請讀 [繁體中文使用手冊](docs/USER_GUIDE.zh-TW.md)／[離線 HTML 手冊](docs/USER_GUIDE.html)。目前距離正式版尚缺的功能與驗收見 [發佈準備清單](docs/RELEASE_READINESS.md)。
 
 **v0.12.0：可自訂工作流程範本。** 聊天室「流程」可選擇、增加、修改、複製與刪除範本，設定角色、先決步驟、不可變產物交接、審查與有界回修。內建「Codex 實作 → Claude 審查」及「AGY 契約 → 平行實作 → 交叉審查」，通過既有指定版本審查、測試與安全 gate 才整合。詳見 [流程使用手冊](docs/WORKFLOW_TEMPLATES.md)。本次只驗證相關流程，不重跑付費代理全套。
