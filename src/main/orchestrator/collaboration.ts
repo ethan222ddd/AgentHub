@@ -18,6 +18,7 @@ import { git } from '../git/workspaces'
 import { withinWorkspace } from '../permissions/paths'
 import { ArtifactStore } from './artifacts'
 import { ContextMemory } from './context'
+import { proposeDecision } from './decisions'
 
 export interface CollaborationHost {
   store: Store
@@ -44,6 +45,7 @@ export interface CollaborationHost {
   pump(): void
 }
 const planningOperations = new Set([
+  'propose_decision',
   'search_context',
   'read_context',
   'read_artifact',
@@ -63,6 +65,17 @@ export async function deliverCollaboration(
     throw new Error(
       'Planning phase: only read context/artifacts, report progress and submit_plan are allowed until the user approves the plan.',
     )
+  if (input.operation === 'propose_decision') {
+    if (!input.decision?.title) throw new Error('propose_decision requires decision.title')
+    const decision = proposeDecision(host.store, current, input.decision.title, input.content)
+    host.changed()
+    return {
+      proposed: true,
+      decisionId: decision.id,
+      status: decision.status,
+      note: 'Proposed only. It applies to future tasks after the user accepts it.',
+    }
+  }
   if (input.operation === 'submit_handoff') {
     if (current.kind === 'review')
       throw new Error('Reviews report through submit_review, not submit_handoff')

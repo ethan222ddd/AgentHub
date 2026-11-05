@@ -17,6 +17,7 @@ import { Button } from '../components/ui'
 import { ActivityPanel } from './panels/ActivityPanel'
 import { ChangesPanel } from './panels/ChangesPanel'
 import { PlanReview } from './panels/PlanReview'
+import { DecisionLog } from './panels/DecisionLog'
 import { TaskMap } from './panels/TaskMap'
 import { UsageTrends } from './panels/UsageTrends'
 import type { Diff } from './panels/types'
@@ -82,6 +83,7 @@ export function SidePanel({
     { id: string; operation: string; status: string; detail: string; time: string }[]
   >([])
   const text = (zh: string, eng: string) => (en ? eng : zh)
+  const proposedDecisions = (project.decisions || []).filter((d) => d.status === 'proposed').length
   const plans = tasks.filter(
     (t) => !t.supersededBy && t.status === 'waiting_user' && t.waitReason === 'plan' && t.plan,
   )
@@ -116,6 +118,7 @@ export function SidePanel({
     ['changes', text('變更', 'Changes')],
     ['reviews', text('審查', 'Reviews')],
     ['artifacts', text('契約', 'Contracts')],
+    ['decisions', text('決策', 'Decisions')],
   ]
   return (
     <aside className={`side-panel ${tab === 'tasks' || tab === 'usage' ? 'wide' : ''}`}>
@@ -130,6 +133,9 @@ export function SidePanel({
               onClick={() => setTab(id)}
             >
               {label}
+              {id === 'decisions' && !!proposedDecisions && (
+                <b className="count">{proposedDecisions}</b>
+              )}
             </button>
           ))}
         </div>
@@ -227,6 +233,8 @@ export function SidePanel({
             projectId={project.id}
             en={en}
           />
+        ) : tab === 'decisions' ? (
+          <DecisionLog project={project} agents={allAgents} en={en} perform={perform} />
         ) : tab === 'reviews' ? (
           <Reviews
             reviews={reviews}

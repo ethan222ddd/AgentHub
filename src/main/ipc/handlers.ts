@@ -16,6 +16,7 @@ import { trace, diagnosticsPath } from '../app/diagnostics'
 import { BackupManager } from '../database/backup'
 import { ArtifactStore } from '../orchestrator/artifacts'
 import { ContextMemory } from '../orchestrator/context'
+import { deleteDecision, saveDecision } from '../orchestrator/decisions'
 import type { Review } from '../../shared/types'
 import { git } from '../git/workspaces'
 import { QuotaService } from '../agents/quota-service'
@@ -71,6 +72,11 @@ export function makeHandler(
         if (!workflows) throw new Error('Workflow service unavailable')
         workflows.save(request.template)
         return null
+      case 'decision.save':
+        return saveDecision(store, request.projectId, request)
+      case 'decision.delete':
+        deleteDecision(store, request.projectId, request.id)
+        break
       case 'workflow.delete':
         if (!workflows) throw new Error('Workflow service unavailable')
         workflows.delete(request.id)

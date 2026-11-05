@@ -1,6 +1,7 @@
 import type { Project, Task, TaskHandoff } from '../../shared/types'
 import { Store } from '../database/store'
 import { isPlanning, latestAttempt } from '../../shared/tasks'
+import { acceptedDecisionsText } from './decisions'
 
 const fence = (label: string, body: string) => `\n<${label}>\n${body}\n</${label}>`
 
@@ -10,8 +11,16 @@ const fence = (label: string, body: string) => `\n<${label}>\n${body}\n</${label
  * labelled as data so it can never widen permissions.
  */
 export function taskGuidance(store: Store, task: Task, project: Project): string {
-  void project
   const parts: string[] = []
+  const decisions = acceptedDecisionsText(store.get<Project>('projects', project.id) || project)
+  if (decisions)
+    parts.push(
+      '\nPROJECT DECISIONS accepted by the user (follow them unless the current request explicitly changes one):' +
+        fence('project-decisions', decisions),
+    )
+  parts.push(
+    '\nIf you make or need an architectural choice that future tasks should follow (naming, data model, library, API contract), call agenthub_collaborate with operation propose_decision, recipients [], decision = {title}, content = the rationale. It only applies after the user accepts it.',
+  )
   const current = store.get<Task>('tasks', task.id) || task
   if (isPlanning(current)) {
     parts.push(

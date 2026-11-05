@@ -1,6 +1,19 @@
 export type Provider = 'codex' | 'claude' | 'antigravity'
 export type Mode = 'manual' | 'collaborative' | 'supervisor'
+/** A project-level decision. Accepted ones are given to every task in the project. */
+export interface Decision {
+  id: string
+  title: string
+  detail: string
+  status: 'proposed' | 'accepted' | 'rejected'
+  /** 'user' or the proposing agent's id. */
+  proposedBy: string
+  taskId?: string
+  createdAt: string
+  decidedAt?: string
+}
 export interface Project {
+  decisions?: Decision[]
   autoManaged?: boolean
   setup?: {
     state: 'preparing' | 'ready' | 'attention' | 'error'

@@ -77,6 +77,7 @@ export const collaborationSchema = z
       'read_context',
       'submit_plan',
       'submit_handoff',
+      'propose_decision',
     ]),
     recipients: z.array(id).max(8),
     content: z.string().min(1).max(16000),
@@ -93,6 +94,10 @@ export const collaborationSchema = z
         risks: z.array(z.string().min(1).max(2000)).max(20).default([]),
         verification: z.string().max(4000).default(''),
       })
+      .strict()
+      .optional(),
+    decision: z
+      .object({ title: z.string().trim().min(1).max(200) })
       .strict()
       .optional(),
     handoff: z
@@ -171,6 +176,17 @@ export const workflowTemplateSchema = z
 export const requestSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('workflow.save'), template: workflowTemplateSchema }).strict(),
   z.object({ op: z.literal('workflow.delete'), id }).strict(),
+  z
+    .object({
+      op: z.literal('decision.save'),
+      projectId: id,
+      id: id.optional(),
+      title: z.string().trim().min(1).max(200),
+      detail: z.string().trim().max(4000),
+      status: z.enum(['proposed', 'accepted', 'rejected']),
+    })
+    .strict(),
+  z.object({ op: z.literal('decision.delete'), projectId: id, id }).strict(),
   z
     .object({
       op: z.literal('workflow.start'),
