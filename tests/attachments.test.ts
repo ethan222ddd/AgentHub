@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { writeFile, readFile, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
-import { backup } from 'node:sqlite'
+import { backup, DatabaseSync } from 'node:sqlite'
 import { Store } from '../src/main/database/store'
 import { AttachmentStore, MAX_IMAGE_BYTES } from '../src/main/attachments/store'
 import { localImageInputs, claudeImageContent } from '../src/main/agents/images'
@@ -119,29 +119,47 @@ describe('Immutable binary attachments', () => {
   })
   it('migrates an existing schema-3 database without losing messages', async () => {
     const path = join(await directory(), 'old.sqlite')
-    let store = new Store(path)
-    const p = store.addProject('C:\\fixture', 'P')
-    const c = store.snapshot().conversations[0]
-    store.put('messages', {
-      id: 'old-note',
-      conversationId: c.id,
+    const legacy = new DatabaseSync(path)
+    const p = { id: 'old-project', path: 'C:\\fixture', name: 'P', createdAt: '' }
+    const c = {
+      id: 'old-room',
       projectId: p.id,
-      content: 'Preserved',
-      senderId: 'user',
-      recipientIds: [],
-      type: 'user',
-      timestamp: '',
-      taskId: null,
-      correlationId: '',
-      delivery: 'completed',
-    } satisfies Message)
-    store.db.exec(
-      'DROP TABLE workspace_operations; DROP TRIGGER message_search_insert; DROP TRIGGER message_search_update; DROP TRIGGER message_search_delete; DROP TABLE message_search; DROP TABLE context_pins; DROP TABLE context_receipts; DROP TABLE message_deliveries; DROP TABLE attachments;DELETE FROM migrations WHERE version>=4',
-    )
-    store.close()
-    store = new Store(path)
-    expect(store.messages(c.id)[0].content).toBe('Preserved')
-    expect(store.db.prepare('SELECT count(*) as n FROM attachments').get()?.n).toBe(0)
-    store.close()
+      name: 'Old room',
+      mode: 'manual',
+      supervisorId: '',
+      createdAt: '',
+      stopped: false,
+    }
+    try {
+      legacy.exec(await readFile(new URL('./fixtures/schema-3.sql', import.meta.url), 'utf8'))
+      legacy.prepare('INSERT INTO projects VALUES(?,?)').run(p.id, JSON.stringify(p))
+      legacy.prepare('INSERT INTO conversations VALUES(?,?,?)').run(c.id, p.id, JSON.stringify(c))
+      const message: Message = {
+        id: 'old-note',
+        conversationId: c.id,
+        projectId: p.id,
+        content: 'Preserved',
+        senderId: 'user',
+        recipientIds: [],
+        type: 'user',
+        timestamp: '',
+        taskId: null,
+        correlationId: '',
+        delivery: 'completed',
+      }
+      legacy
+        .prepare('INSERT INTO messages VALUES(?,?,?)')
+        .run(message.id, c.id, JSON.stringify(message))
+    } finally {
+      legacy.close()
+    }
+    const store = new Store(path)
+    try {
+      expect(store.messages(c.id)[0].content).toBe('Preserved')
+      expect(store.db.prepare('SELECT count(*) as n FROM attachments').get()?.n).toBe(0)
+      expect(store.snapshot().workflowTemplates).toHaveLength(2)
+    } finally {
+      store.close()
+    }
   })
 })

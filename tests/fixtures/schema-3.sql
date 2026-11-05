@@ -1,0 +1,21 @@
+-- Frozen historical schema. Do not derive this fixture by downgrading the current Store.
+CREATE TABLE migrations(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
+INSERT INTO migrations VALUES(1, '2025-01-01'), (2, '2025-01-01'), (3, '2025-01-01');
+CREATE TABLE projects(id TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE conversations(id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, data TEXT NOT NULL);
+CREATE TABLE messages(id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE, data TEXT NOT NULL);
+CREATE INDEX messages_conversation ON messages(conversation_id);
+CREATE TABLE agents(id TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE sessions(id TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE tasks(id TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE activities(id TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE workspaces(id TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE checkpoints(id TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE settings(id TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE test_runs(id TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE usage_records(id TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE reviews(id TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE artifacts(id TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE permissions(id TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE merge_previews(id TEXT PRIMARY KEY, data TEXT NOT NULL);
+CREATE TABLE summaries(id TEXT PRIMARY KEY, data TEXT NOT NULL);

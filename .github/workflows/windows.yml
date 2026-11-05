@@ -30,11 +30,17 @@ jobs:
         run: |
           $generated = @(git ls-files -- release dist .local .native node_modules test-results playwright-report '*.sqlite*' '.env*')
           if ($generated.Count) { throw 'Generated or private data must not be tracked' }
-      - run: npm test
+      - name: Run offline unit and integration tests
+        run: |
+          New-Item -ItemType Directory -Force .local/ci | Out-Null
+          npm test -- --reporter=default --reporter=json --outputFile=.local/ci/unit.json
       - run: npm run package:win
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - run: npx playwright test
+      - name: Run Electron end-to-end tests
+        run: npx playwright test --reporter=list,json
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_FILE: .local/ci/e2e.json
       - uses: actions/upload-artifact@v7
         with:
           name: AgentHub-Windows-x64
@@ -42,6 +48,14 @@ jobs:
             release/*/AgentHub Setup *.exe
             release/*/AgentHub-*-portable.exe
           if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: AgentHub-test-reports
+          path: .local/ci/*.json
+          include-hidden-files: true
+          if-no-files-found: ignore
           retention-days: 7
       - uses: actions/upload-artifact@v7
         if: failure()

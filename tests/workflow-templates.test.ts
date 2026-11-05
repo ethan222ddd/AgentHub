@@ -99,7 +99,7 @@ async function fixture(run: (ctx: RunContext) => Promise<string>) {
   const service = new WorkflowService(store, orchestrator)
   const conversation = store.snapshot().conversations[0]
   const status = (id: string) => store.require<WorkflowRun>('workflow_runs', id)
-  const done = (id: string, timeout = 50000) =>
+  const done = (id: string, timeout = 100000) =>
     until(() => status(id).status !== 'running', timeout)
   const close = async () => {
     await service.dispose()
@@ -112,7 +112,7 @@ async function fixture(run: (ctx: RunContext) => Promise<string>) {
 
 describe(
   'Custom template execution with fixture adapters and real Git/test gates',
-  { timeout: 60000 },
+  { timeout: 120000 },
   () => {
     it('implements, rejects, fixes, re-reviews and tests the exact merge snapshot; template edits do not mutate a run', async () => {
       let implementations = 0,

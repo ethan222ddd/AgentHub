@@ -61,7 +61,15 @@ it('uses only Claude subscription windows, preserving unknown model limits', () 
     },
   })
   expect(q.windows.map((w) => w.remainingPercent)).toEqual([80, null])
-  expect(JSON.stringify(q)).not.toMatch(/PRIVATE_ACCOUNT|99|total_cost/)
+  expect(Object.keys(q).sort()).toEqual([
+    'checkedAt',
+    'detail',
+    'provider',
+    'source',
+    'status',
+    'windows',
+  ])
+  expect(JSON.stringify(q)).not.toMatch(/PRIVATE_ACCOUNT|total_cost/)
   expect(claudeQuota({ rate_limits_available: false }).status).toBe('unavailable')
 })
 it('coalesces per-provider reads and throttles force refreshes', async () => {
