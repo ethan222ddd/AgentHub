@@ -4,7 +4,7 @@
 <p>適用版本：<strong>v0.12.0 Windows 桌面版</strong>。更新日期：2026-11-05（Asia/Taipei）。</p>
 <p>AgentHub 讓你在同一聊天室指派真正的 Codex、Claude Code 與 Antigravity 開發專案。每位 Agent 有自己的原生 Session 和 Git 工作區。預設由 App 自動準備版本、配置工作區，在檢查與測試通過後整合到你選擇的資料夾；敏感內容、使用者未提交修改、衝突及失敗會停下提示。目前尚未完成正式 v1.0 全部驗收。</p>
 <h2 id="1-安裝與事前準備">1. 安裝與事前準備</h2>
-<p>在 <code>release/0.12.1</code> 找到 <code>AgentHub Setup 0.12.1.exe</code> 安裝，或使用 <code>AgentHub-0.12.1-portable.exe</code> 免安裝版。也可直接執行 <code>win-unpacked/AgentHub.exe</code>。Portable 預設把資料放在執行檔旁的 <code>AgentHubData</code>，請放在可寫入的資料夾。本版未簽章、沒有自動更新；請確認安裝檔來自你信任的來源。升級前先備份。</p>
+<p>在 <code>release/0.12.2</code> 找到 <code>AgentHub Setup 0.12.2.exe</code> 安裝，或使用 <code>AgentHub-0.12.2-portable.exe</code> 免安裝版。也可直接執行 <code>win-unpacked/AgentHub.exe</code>。Portable 預設把資料放在執行檔旁的 <code>AgentHubData</code>，請放在可寫入的資料夾。本版未簽章、沒有自動更新；請確認安裝檔來自你信任的來源。升級前先備份。</p>
 <p>AgentHub 不會代替你安裝或登入三家的 Coding Runtime。請先備妥：</p>
 <table><thead><tr><th>項目</th><th>用途與目前限制</th></tr></thead><tbody><tr><td>Git</td><td>建立版本、隔離工作區、Diff、審核與合併；須能在終端執行 <code>git --version</code>。</td></tr><tr><td>Codex CLI</td><td>使用本機官方 CLI 與其登入；可用 <code>codex --version</code> 確認安裝。</td></tr><tr><td>Claude Code CLI</td><td>本機訂閱模式使用官方 CLI，需要 2.1.295+；本版已實測 2.1.296。</td></tr><tr><td>Antigravity CLI</td><td>執行名稱為 <code>agy</code>；本版實測 1.4.12，必須支援其原生 Sandbox。</td></tr><tr><td>專案工具鏈</td><td>例如 Node.js/npm、Python、.NET、Rust 或 Go；執行該語言的專案測試時才需要。</td></tr><tr><td>Windows</td><td>本版實測 Windows 11 build 26300。Antigravity Sandbox 要求 Windows 11 24H2 及官方指定更新，舊 Windows 不能使用此 Adapter；未完成完整 Windows 10/11 相容矩陣。</td></tr></tbody></table>
 <p>請依各家官方安裝文件取得 CLI：<a href="https://developers.openai.com/codex/">Codex</a>、<a href="https://code.claude.com/docs/en/overview">Claude Code</a>、<a href="https://antigravity.google/docs/">Antigravity</a>。安裝或變更 PATH 後，關閉並重新開啟 AgentHub。</p>
@@ -162,6 +162,14 @@ Codex 負責 API，Claude 負責前端，Antigravity 負責測試與安全審查
 <p><strong>決策紀錄</strong>：「決策」分頁記錄專案約定，例如「金額一律用整數分」。你新增的決策直接採用；代理提出的會標在「待確認」，你採用後才生效。已採用的決策會附在這個專案之後的每一個任務裡。</p>
 <p><strong>衝突預警</strong>：多位代理在各自工作區改到同一個檔案、還沒整合時，標題列下方會出現提示，聊天室也會收到一則系統訊息。到「任務」可看每個檔案涉及哪些代理、是否尚未提交。建議先整合其中一方，再讓另一位同步後繼續。</p>
 <p><strong>Diff 行內意見</strong>：「變更」選擇代理工作區後重新整理，點任一行加入意見，最後「交給代理修改」會把所有意見送給該代理，並建立一個新任務。自動管理的專案會在任務結束時提交，請把「比較基準」改成「任務開始以來」。這些意見是訊息，不會取代審查者的批准。</p>
+<p><strong>全自動模式（預設開啟）</strong>：輸入框旁的「全自動」或「設定 → 協作」切換。開啟時，一則訊息同時指定多位代理，會由一位主導代理（監督者模式下是監督者，否則是第一位）先定好共用介面與檔案分工、完成基礎，再把其他人的部分分派出去；主導代理沒分派到的成員，AgentHub 會在它完成後依角色補派，測試／審查角色會等實作完成才開始。過程中不停下來問你：</p>
+<ul>
+<li>工具請求依 Host 政策直接放行，並在活動中留下「自動允許／自動拒絕」紀錄。推送、改寫 Git 歷史、強制操作、讀寫憑證、改系統設定、提權，以及刪除工作區以外的檔案一律拒絕。</li>
+<li>代理提出的決策直接採用；任務結束後自動提交、測試、整合進主要資料夾。整合或任務失敗時，同一位代理最多自動修正 2 次，仍失敗才通知你。</li>
+<li>專案沒有測試檔時允許先整合（紀錄為「沒有測試檔」）；缺少鎖定檔會自動產生；<code>dist</code>、<code>node_modules</code>、<code>*.tsbuildinfo</code> 等產生檔不會被提交。</li>
+<li>回合、Token、金額與時間預算仍然有效，到達上限就停止。主要資料夾裡你自己未提交的修改不會被覆寫。</li>
+</ul>
+<p>要代理在某一步停下來等你，直接在訊息寫明（例如「先給我看計畫再改」），或改用「先提計畫」；想逐筆批准就把全自動關掉，回到原本的批准佇列。</p>
 <p><strong>GitHub</strong>：需要先安裝 GitHub CLI，並在終端機執行 <code>gh auth login</code>；AgentHub 不讀取 gh 的 Token。</p>
 <ul>
 <li>標題列「Issues」列出開啟中的 Issue，選一個交給代理，預設會先提計畫。Issue 內容當作第三方需求資料處理。</li>
