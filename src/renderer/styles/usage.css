@@ -1,0 +1,193 @@
+/* Usage and cost trends: stat tiles, daily stacked columns and per-agent table. */
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--border);
+}
+.stat-tiles > div {
+  padding: 12px 13px;
+  background: var(--surface);
+  min-width: 0;
+}
+.stat-tiles dt {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.stat-tiles dd {
+  margin: 6px 0 0;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+.stat-tiles small {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.usage-chart-card {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.usage-chart-card > header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.usage-chart-card > header > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.usage-chart-card h5,
+.agent-efficiency h5 {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.usage-chart-card header .muted {
+  margin: 4px 0 0;
+}
+.icon-toggle {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  color: var(--muted);
+}
+.icon-toggle:hover,
+.icon-toggle.on {
+  background: var(--hover);
+  color: var(--text);
+}
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.chart-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.usage-chart {
+  position: relative;
+}
+.usage-chart svg {
+  display: block;
+}
+.usage-chart .grid {
+  stroke: var(--chart-grid);
+}
+.usage-chart .baseline {
+  stroke: var(--chart-baseline);
+}
+.usage-chart .tick {
+  fill: var(--muted);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+.usage-chart .bar {
+  fill: var(--slot);
+  transition: opacity 0.12s;
+}
+.usage-chart .bar.faded {
+  opacity: 0.35;
+}
+.usage-chart .hit {
+  fill: transparent;
+}
+.chart-tooltip {
+  position: absolute;
+  top: 0;
+  width: 180px;
+  padding: 10px 11px;
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+  pointer-events: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px #0000001f;
+}
+.chart-tooltip strong {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.chart-tooltip span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+.chart-tooltip b {
+  margin-left: auto;
+  color: var(--text);
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+}
+.chart-tooltip .tooltip-total {
+  border-top: 1px solid var(--border);
+  padding-top: 5px;
+  color: var(--text);
+}
+.agent-efficiency {
+  margin-top: 22px;
+}
+.agent-efficiency h5 {
+  margin-bottom: 10px;
+}
+.usage-table-scroll {
+  overflow-x: auto;
+}
+.usage-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.usage-table th {
+  text-align: right;
+  font-weight: 500;
+  color: var(--muted);
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.usage-table td {
+  text-align: right;
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.usage-table th:first-child,
+.usage-table td:first-child {
+  text-align: left;
+}
+.usage-table td:first-child .agent-swatch {
+  margin-right: 7px;
+}
+.usage-table tbody tr:hover {
+  background: var(--hover);
+}
+
+@media (max-width: 760px) {
+  .stat-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

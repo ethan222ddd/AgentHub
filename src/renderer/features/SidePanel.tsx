@@ -5,6 +5,7 @@ import type {
   AgentProfile,
   Approval,
   Artifact,
+  Conversation,
   Project,
   Review,
   Task,
@@ -16,6 +17,7 @@ import { Button } from '../components/ui'
 import { ActivityPanel } from './panels/ActivityPanel'
 import { ChangesPanel } from './panels/ChangesPanel'
 import { TaskMap } from './panels/TaskMap'
+import { UsageTrends } from './panels/UsageTrends'
 import type { Diff } from './panels/types'
 import { Artifacts, Reviews } from './Reviews'
 
@@ -37,6 +39,9 @@ export function SidePanel({
   perform,
   en,
   allAgents,
+  allUsage,
+  allTasks,
+  conversations,
 }: {
   tab: string
   setTab(tab: string): void
@@ -55,6 +60,9 @@ export function SidePanel({
   perform(request: Record<string, unknown>): Promise<unknown>
   en: boolean
   allAgents: AgentProfile[]
+  allUsage: UsageRecord[]
+  allTasks: Task[]
+  conversations: Conversation[]
 }) {
   const [workspaceId, setWorkspaceId] = useState(workspaces[0]?.id || '')
   const [diff, setDiff] = useState<Diff>()
@@ -98,12 +106,13 @@ export function SidePanel({
   const tabs: [string, string][] = [
     ['activity', text('活動', 'Activity')],
     ['tasks', text('任務', 'Tasks')],
+    ['usage', text('用量', 'Usage')],
     ['changes', text('變更', 'Changes')],
     ['reviews', text('審查', 'Reviews')],
     ['artifacts', text('契約', 'Contracts')],
   ]
   return (
-    <aside className={`side-panel ${tab === 'tasks' ? 'wide' : ''}`}>
+    <aside className={`side-panel ${tab === 'tasks' || tab === 'usage' ? 'wide' : ''}`}>
       <header>
         <div className="tabs" role="tablist">
           {tabs.map(([id, label]) => (
@@ -170,6 +179,16 @@ export function SidePanel({
             allAgents={allAgents}
             en={en}
             openTask={openTask}
+          />
+        ) : tab === 'usage' ? (
+          <UsageTrends
+            usage={allUsage}
+            tasks={allTasks}
+            conversations={conversations}
+            allAgents={allAgents}
+            conversationId={conversationId}
+            projectId={project.id}
+            en={en}
           />
         ) : tab === 'reviews' ? (
           <Reviews

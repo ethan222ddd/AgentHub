@@ -533,6 +533,9 @@ export function App() {
               perform={perform}
               en={en}
               allAgents={snapshot.agents}
+              allUsage={snapshot.usage}
+              allTasks={snapshot.tasks}
+              conversations={snapshot.conversations}
             />
           )}
         </div>
