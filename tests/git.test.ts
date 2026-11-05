@@ -18,7 +18,7 @@ async function testSnapshot(store: Store, preview: { integrationWorkspaceId: str
 }
 // Real guarded Git commands incur process startup overhead on Windows. This
 // suite creates, tests and merges several complete worktrees per assertion.
-describe('Git worktree isolation and reviewed integration', { timeout: 60000 }, () => {
+describe('Git worktree isolation and reviewed integration', { timeout: 120000 }, () => {
   it('isolates changes, previews exact snapshots, merges and rejects stale previews', async () => {
     const root = await repository()
     const store = new Store(':memory:')

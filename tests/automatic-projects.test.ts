@@ -36,7 +36,7 @@ async function setup(path?: string) {
   return { base, root, store, project, manager, auto, agent, tests, signal, workspace }
 }
 // Each case invokes many real guarded Git processes, rather than an in-memory Git mock.
-describe('Automatic project lifecycle', { timeout: 60000 }, () => {
+describe('Automatic project lifecycle', { timeout: 120000 }, () => {
   it('automatically initializes an empty Chinese/space path and integrates a static Hello World into that folder', async () => {
     const s = await setup()
     try {
