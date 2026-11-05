@@ -4,6 +4,7 @@ export async function git(
   args: string[],
   trim = true,
   extraEnv: NodeJS.ProcessEnv = {},
+  timeout = 30000,
 ): Promise<string> {
   const { stdout } = await exec(
     'git',
@@ -21,7 +22,7 @@ export async function git(
     {
       cwd,
       windowsHide: true,
-      timeout: 30000,
+      timeout,
       maxBuffer: 4 * 1024 * 1024,
       env: {
         ...runtimeEnv(),

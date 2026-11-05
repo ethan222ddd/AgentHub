@@ -22,6 +22,7 @@ import { DesktopNotifications } from './app/notifications'
 import { WindowsNotificationSink } from './app/notifications-native'
 import { WorkflowService } from './workflows/service'
 import { OverlapMonitor } from './git/overlaps'
+import { GitHubService } from './github/service'
 import type { AppEvent, Conversation, Task } from '../shared/types'
 const dataDirectory =
   app.commandLine.getSwitchValue('user-data-dir') ||
@@ -43,6 +44,7 @@ let workflows: WorkflowService | undefined
 let quitting = false
 let notifications: DesktopNotifications | undefined
 let overlaps: OverlapMonitor | undefined
+let github: GitHubService | undefined
 let closeServices = async () => {}
 const single = app.requestSingleInstanceLock()
 if (!single) app.quit()
@@ -94,6 +96,8 @@ else {
       overlaps = new OverlapMonitor(store, () => orchestrator.changed())
       overlaps.start()
       overlaps.observe()
+      github = new GitHubService(store, orchestrator)
+      github.start()
       for (const project of store.snapshot().projects) {
         if (project.autoManaged === undefined)
           store.put('projects', { ...project, autoManaged: true })
@@ -161,6 +165,7 @@ else {
         notifications,
         workflows,
         overlaps,
+        github,
       )
       closeServices = handler.dispose
       ipcMain.handle('agenthub:invoke', async (event, raw: unknown) => {
@@ -226,6 +231,7 @@ else {
     quitting = true
     notifications?.dispose()
     overlaps?.dispose()
+    github?.dispose()
     processSupervisor.stopAccepting()
     const drain = async (stage: string, work: Promise<unknown>) => {
       trace('app.shutdown.stage', { stage, status: 'started' })

@@ -1,6 +1,7 @@
 import {
   Activity as ActivityIcon,
   Bot,
+  CircleDot,
   GitBranch,
   Network,
   PanelLeft,
@@ -33,6 +34,7 @@ interface Props {
   setPanel: Dispatch<SetStateAction<string>>
   pendingApprovals: number
   openQueue(): void
+  openIssues(): void
 }
 export function WorkspaceHeader({
   project,
@@ -49,6 +51,7 @@ export function WorkspaceHeader({
   setPanel,
   pendingApprovals,
   openQueue,
+  openIssues,
 }: Props) {
   const plansWaiting = tasks.filter(
     (t) => !t.supersededBy && t.status === 'waiting_user' && t.waitReason === 'plan',
@@ -116,6 +119,12 @@ export function WorkspaceHeader({
           <Workflow size={15} />
           <span>{text('流程', 'Workflows')}</span>
         </Button>
+        {project && conversation && (
+          <Button size="sm" variant="ghost" onClick={openIssues}>
+            <CircleDot size={15} />
+            <span>Issues</span>
+          </Button>
+        )}
         {project && (
           <Button size="sm" variant="ghost" onClick={() => setTeamOpen(true)}>
             <Bot size={15} />

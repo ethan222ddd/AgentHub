@@ -25,6 +25,7 @@ import { processSupervisor } from '../agents/process-owner'
 import type { DesktopNotifications } from '../app/notifications'
 import type { WorkflowService } from '../workflows/service'
 import type { OverlapMonitor } from '../git/overlaps'
+import type { GitHubService } from '../github/service'
 
 export function makeHandler(
   store: Store,
@@ -36,7 +37,12 @@ export function makeHandler(
   notifications?: DesktopNotifications,
   workflows?: WorkflowService,
   overlaps?: OverlapMonitor,
+  github?: GitHubService,
 ) {
+  const hub = () => {
+    if (!github) throw new Error('GitHub service unavailable')
+    return github
+  }
   const backups = new BackupManager(app.getPath('userData'))
   const quotas = new QuotaService(orchestrator.adapters)
   const attachments = new AttachmentStore(store, async (data) => {
@@ -119,6 +125,34 @@ export function makeHandler(
           diagnosticsPath: diagnosticsPath(),
           overlaps: overlaps?.all() || {},
         }
+      case 'github.status':
+        return hub().status(request.projectId, true)
+      case 'github.issues':
+        return hub().issues(request.projectId)
+      case 'github.issue.import': {
+        const c = store.require<Conversation>('conversations', request.conversationId)
+        if (tests.busy(c.projectId))
+          throw new Error('Wait for snapshot tests to finish before starting agents.')
+        return hub().importIssue(
+          request.conversationId,
+          request.number,
+          request.recipients,
+          request.planFirst,
+        )
+      }
+      case 'github.pr.prepare':
+        return hub().preparePr(request.taskId)
+      case 'github.pr.create':
+        return hub().createPr(request.taskId, request.title, request.body, request.branch)
+      case 'github.pr.push':
+        return hub().pushUpdate(request.taskId)
+      case 'github.pr.refresh':
+        return hub().refresh(request.taskId)
+      case 'github.ci.fix':
+        return hub().fixCi(request.taskId)
+      case 'github.open':
+        await shell.openExternal(request.url)
+        return null
       case 'overlaps.scan':
         store.require<Project>('projects', request.projectId)
         if (!overlaps) throw new Error('Overlap monitor unavailable')

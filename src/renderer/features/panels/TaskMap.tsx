@@ -11,6 +11,7 @@ import {
   type BoardColumn,
 } from '../../lib/task-graph'
 import { HandoffCard } from './HandoffCard'
+import { PullRequestBox } from './PullRequestBox'
 import { OverlapList } from './OverlapList'
 import type { ProjectOverlaps } from '../../../shared/types'
 import { TaskStatusChip, statusTone } from './TaskStatus'
@@ -304,6 +305,7 @@ export function TaskMap({
           )}
           {selectedTask.error && <pre className="error-text">{selectedTask.error}</pre>}
           <HandoffCard task={selectedTask} en={en} />
+          <PullRequestBox task={selectedTask} en={en} perform={perform} />
           {!!selectedTask.dependencies.length && (
             <p className="muted">
               {text('依賴：', 'Depends on: ')}

@@ -1,6 +1,7 @@
 import type { AppEvent, Approval, Conversation, Settings, Task } from '../../shared/types'
 
-export type NoticeKind = 'approval' | 'plan' | 'completed' | 'failed' | 'integration' | 'test'
+export type NoticeKind =
+  'approval' | 'plan' | 'completed' | 'failed' | 'integration' | 'ci' | 'test'
 export interface Notice {
   kind: NoticeKind
   conversationId?: string
@@ -29,13 +30,18 @@ export class DesktopNotifications {
   private ready = false
   private closed = false
   private lastBadge = ''
+  /** CI state per PR URL: several tasks (original + CI fixes) can share one pull request. */
+  private ci = new Map<string, string>()
 
   constructor(
     private readonly read: () => NotificationState,
     private readonly sink: NotificationSink,
   ) {
     // Restoring history must not announce old completions/failures again.
-    for (const task of read().tasks) this.tasks.set(task.id, this.signature(task))
+    for (const task of read().tasks) {
+      this.tasks.set(task.id, this.signature(task))
+      if (task.pullRequest) this.ci.set(task.pullRequest.url, task.pullRequest.checks?.state || '')
+    }
     this.updateBadge()
   }
 
@@ -70,6 +76,7 @@ export class DesktopNotifications {
     const labels: Record<NoticeKind, [string, string]> = {
       approval: ['代理正在等待批准', 'Agent approval required'],
       plan: ['代理的計畫等待你批准', 'An agent plan is waiting for approval'],
+      ci: ['PR 的 CI 失敗', 'CI failed on a pull request'],
       completed: ['代理任務已完成', 'Agent task completed'],
       failed: ['代理任務失敗', 'Agent task failed'],
       integration: ['程式碼整合需要處理', 'Code integration needs attention'],
@@ -100,6 +107,13 @@ export class DesktopNotifications {
       const tasks = this.read().tasks
       const next = new Map<string, string>()
       for (const task of tasks) {
+        const pr = task.pullRequest
+        if (pr) {
+          const state = pr.checks?.state || ''
+          if (state === 'failing' && this.ci.get(pr.url) !== 'failing')
+            this.show('ci', task.conversationId)
+          this.ci.set(pr.url, state)
+        }
         const signature = this.signature(task)
         next.set(task.id, signature)
         if (task.supersededBy || task.status !== 'failed') this.unreadFailures.delete(task.id)

@@ -177,6 +177,43 @@ export const requestSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('workflow.save'), template: workflowTemplateSchema }).strict(),
   z.object({ op: z.literal('workflow.delete'), id }).strict(),
   z.object({ op: z.literal('overlaps.scan'), projectId: id }).strict(),
+  z.object({ op: z.literal('github.status'), projectId: id }).strict(),
+  z.object({ op: z.literal('github.issues'), projectId: id }).strict(),
+  z
+    .object({
+      op: z.literal('github.issue.import'),
+      conversationId: id,
+      number: z.number().int().positive(),
+      recipients: z.array(id).min(1).max(8),
+      planFirst: z.boolean().optional(),
+    })
+    .strict(),
+  z.object({ op: z.literal('github.pr.prepare'), taskId: id }).strict(),
+  z
+    .object({
+      op: z.literal('github.pr.create'),
+      taskId: id,
+      title: z.string().trim().min(1).max(256),
+      body: z.string().max(60000),
+      branch: z
+        .string()
+        .regex(/^agenthub\/[A-Za-z0-9._-]{1,80}$/)
+        .refine((b) => !b.includes('..') && !b.endsWith('.lock') && !b.endsWith('.')),
+    })
+    .strict(),
+  z.object({ op: z.literal('github.pr.push'), taskId: id }).strict(),
+  z.object({ op: z.literal('github.pr.refresh'), taskId: id }).strict(),
+  z.object({ op: z.literal('github.ci.fix'), taskId: id }).strict(),
+  z
+    .object({
+      op: z.literal('github.open'),
+      url: z
+        .string()
+        .url()
+        .max(2048)
+        .refine((u) => u.startsWith('https://github.com/')),
+    })
+    .strict(),
   z
     .object({
       op: z.literal('decision.save'),

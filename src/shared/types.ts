@@ -112,7 +112,52 @@ export interface TaskHandoff {
   next: string[]
   submittedAt: string
 }
+export interface PullRequestChecks {
+  state: 'pending' | 'passing' | 'failing' | 'none'
+  failing: { name: string; runId?: string; url?: string }[]
+  checkedAt: string
+}
+/** A PR the user opened from this task's workspace, plus its last known CI state. */
+export interface PullRequestLink {
+  url: string
+  number: number
+  repo: string
+  branch: string
+  base: string
+  createdAt: string
+  state?: 'OPEN' | 'CLOSED' | 'MERGED'
+  checks?: PullRequestChecks
+}
+export type TaskSource =
+  | { kind: 'github_issue'; number: number; url: string; title: string }
+  | { kind: 'ci_fix'; prUrl: string }
+export interface GitHubStatus {
+  available: boolean
+  authenticated: boolean
+  account?: string
+  repo?: { nameWithOwner: string; url: string; defaultBranch: string }
+  error?: string
+}
+export interface GitHubIssue {
+  number: number
+  title: string
+  url: string
+  labels: string[]
+  author: string
+  updatedAt: string
+}
+export interface PullRequestPreview {
+  repo: string
+  base: string
+  branch: string
+  title: string
+  body: string
+  commits: string[]
+  files: string[]
+}
 export interface Task {
+  pullRequest?: PullRequestLink
+  source?: TaskSource
   handoff?: TaskHandoff
   planFirst?: boolean
   plan?: TaskPlan

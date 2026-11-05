@@ -21,6 +21,7 @@ import { MessageList } from './features/chat/MessageList'
 import { Sidebar } from './features/chat/Sidebar'
 import { WorkspaceHeader } from './features/chat/WorkspaceHeader'
 import { ApprovalQueue } from './features/ApprovalQueue'
+import { IssueImport } from './features/IssueImport'
 import { Settings } from './features/Settings'
 import { SidePanel } from './features/SidePanel'
 import { TeamEditor } from './features/TeamEditor'
@@ -51,6 +52,7 @@ export function App() {
   const [teamOpen, setTeamOpen] = useState(false)
   const [workflowOpen, setWorkflowOpen] = useState(false)
   const [queueOpen, setQueueOpen] = useState(false)
+  const [issuesOpen, setIssuesOpen] = useState(false)
   const [panel, setPanel] = useState('')
   const [input, setInput] = useState('')
   const [recipients, setRecipients] = useState<string[]>([])
@@ -292,6 +294,7 @@ export function App() {
           setPanel={setPanel}
           pendingApprovals={approvals.length}
           openQueue={() => setQueueOpen(true)}
+          openIssues={() => setIssuesOpen(true)}
         />
         {snapshot.conversations
           .filter(
@@ -588,6 +591,20 @@ export function App() {
             setWorkflowOpen(false)
             setPanel('activity')
             setInput('')
+          }}
+        />
+      )}
+      {issuesOpen && project && conversation && (
+        <IssueImport
+          project={project}
+          conversation={conversation}
+          agents={agents}
+          en={en}
+          perform={perform}
+          close={() => setIssuesOpen(false)}
+          imported={() => {
+            setIssuesOpen(false)
+            setPanel('activity')
           }}
         />
       )}
