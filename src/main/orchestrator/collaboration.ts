@@ -63,6 +63,27 @@ export async function deliverCollaboration(
     throw new Error(
       'Planning phase: only read context/artifacts, report progress and submit_plan are allowed until the user approves the plan.',
     )
+  if (input.operation === 'submit_handoff') {
+    if (current.kind === 'review')
+      throw new Error('Reviews report through submit_review, not submit_handoff')
+    host.store.put('tasks', {
+      ...current,
+      handoff: {
+        summary: input.content,
+        changed: input.handoff?.changed || [],
+        tested: input.handoff?.tested || [],
+        untested: input.handoff?.untested || [],
+        questions: input.handoff?.questions || [],
+        next: input.handoff?.next || [],
+        submittedAt: new Date().toISOString(),
+      },
+    })
+    host.changed()
+    return {
+      submitted: true,
+      note: 'Handoff recorded for the user, reviewers and dependent tasks.',
+    }
+  }
   if (input.operation === 'submit_plan') {
     if (!isPlanning(current))
       throw new Error('submit_plan is only accepted while a plan-first task is planning')

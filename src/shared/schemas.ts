@@ -76,6 +76,7 @@ export const collaborationSchema = z
       'search_context',
       'read_context',
       'submit_plan',
+      'submit_handoff',
     ]),
     recipients: z.array(id).max(8),
     content: z.string().min(1).max(16000),
@@ -91,6 +92,16 @@ export const collaborationSchema = z
         steps: z.array(z.string().min(1).max(2000)).max(30).default([]),
         risks: z.array(z.string().min(1).max(2000)).max(20).default([]),
         verification: z.string().max(4000).default(''),
+      })
+      .strict()
+      .optional(),
+    handoff: z
+      .object({
+        changed: z.array(z.string().min(1).max(1000)).max(40).default([]),
+        tested: z.array(z.string().min(1).max(1000)).max(30).default([]),
+        untested: z.array(z.string().min(1).max(1000)).max(30).default([]),
+        questions: z.array(z.string().min(1).max(1000)).max(20).default([]),
+        next: z.array(z.string().min(1).max(1000)).max(20).default([]),
       })
       .strict()
       .optional(),

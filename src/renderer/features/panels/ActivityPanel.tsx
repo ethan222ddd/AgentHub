@@ -5,6 +5,7 @@ import { Button } from '../../components/ui'
 import { ContextPanel } from '../ContextPanel'
 import { Usage } from '../Reviews'
 import { TaskForm } from '../WorkflowControls'
+import { HandoffCard } from './HandoffCard'
 interface Props {
   usage: UsageRecord[]
   en: boolean
@@ -147,6 +148,7 @@ export function ActivityPanel({
                     {text('重新嘗試整合（不重跑 Agent）', 'Retry integration (no agent rerun)')}
                   </Button>
                 )}
+              <HandoffCard task={task} en={en} />
               {task.result && <pre>{task.result.slice(-4000)}</pre>}
               {!!task.dependencies.length && (
                 <p className="muted">

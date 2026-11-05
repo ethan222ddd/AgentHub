@@ -10,6 +10,7 @@ import {
   relatedIds,
   type BoardColumn,
 } from '../../lib/task-graph'
+import { HandoffCard } from './HandoffCard'
 import { TaskStatusChip, statusTone } from './TaskStatus'
 
 const NODE_W = 184,
@@ -270,6 +271,7 @@ export function TaskMap({ tasks, agents, allAgents, en, openTask }: Props) {
             <p className="task-focus-description">{selectedTask.description}</p>
           )}
           {selectedTask.error && <pre className="error-text">{selectedTask.error}</pre>}
+          <HandoffCard task={selectedTask} en={en} />
           {!!selectedTask.dependencies.length && (
             <p className="muted">
               {text('依賴：', 'Depends on: ')}

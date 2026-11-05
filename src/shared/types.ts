@@ -89,7 +89,18 @@ export interface TaskPlan {
   submittedAt?: string
   approvedAt?: string
 }
+/** What an agent reports when it finishes: the reviewer and the next agent start here. */
+export interface TaskHandoff {
+  summary: string
+  changed: string[]
+  tested: string[]
+  untested: string[]
+  questions: string[]
+  next: string[]
+  submittedAt: string
+}
 export interface Task {
+  handoff?: TaskHandoff
   planFirst?: boolean
   plan?: TaskPlan
   workflow?: { runId: string; stepId: string }
