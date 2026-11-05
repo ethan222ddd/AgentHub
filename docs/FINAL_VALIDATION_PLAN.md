@@ -33,3 +33,5 @@
 ## 本機最終驗收結案
 
 40 檔 217 項離線、13 項 Electron E2E、15 份同一 app.asar／守護器的打包報告、額外 Windows 通知，以及安裝版與 Portable 都通過。完整與 production npm audit 均為 0。`docs/BUILD_MANIFEST.json` 是經檢查的雜湊清單；舊候選版的失敗紀錄保留於忽略追蹤的 `.local`。真實帳號證據不隨 GitHub Release 公開，下載版依 Release Notes 指向的同 Commit 乾淨 Windows CI 驗收。
+
+首次乾淨 [Windows matrix](https://github.com/ethan222ddd/AgentHub/actions/runs/42093818743) 的 2025 runner 有一個 GitHub Issue 匯入案例超過 15 秒。只將該真實 Git 案例的等待上限與同組其他案例對齊為 60 秒，未改斷言或產品程式；本機 GitHub 交付 6 項重驗通過。發佈只採後續同 Commit 完整通過的 CI。

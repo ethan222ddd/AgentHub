@@ -137,7 +137,7 @@ describe('GitHub delivery', () => {
     expect(env.sent[0].content).toContain('Max one coupon per order.')
     const imported = env.store.list<Task>('tasks').find((t) => t.source?.kind === 'github_issue')!
     expect(imported.name).toBe('#7 Add coupon codes')
-  })
+  }, 60000)
 
   it('opens a PR by pushing a new branch, then routes CI failures back to the agent', async () => {
     const gh = await fakeGitHub()

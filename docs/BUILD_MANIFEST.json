@@ -1,6 +1,6 @@
 {
   "version": "0.13.0",
-  "generatedAt": "2026-11-05T19:24:31.920Z",
+  "generatedAt": "2026-11-05T19:37:29.927Z",
   "platform": "win32",
   "node": "v24.20.0",
   "unsigned": true,
@@ -36,7 +36,7 @@
       "sha256": "c7a453b0674fed5881296e81738295f575071f468b985e5ba2bb3db5d4d58211"
     }
   ],
-  "sourceDigest": "3656d39f08b68c6c59fc4fe16ea0b3ed32275c34a27c9777ea5bf7d16d0ef7b0",
+  "sourceDigest": "1ecf9463998173be22005de6a8a05e86f646d33c6ad05e09cd9874919d28b2c8",
   "sourceFiles": [
     {
       "path": ".github/workflows/release.yml",
@@ -884,7 +884,7 @@
     },
     {
       "path": "tests/github.test.ts",
-      "sha256": "819d775cda95ade15ab496f239922e29052c23c9634a405eadd9fe6dc382b727"
+      "sha256": "2d57e719408a46923888f603bef716b1659aa65c908d518efdefbbdc040d732b"
     },
     {
       "path": "tests/handoff.test.ts",
