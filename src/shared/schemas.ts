@@ -313,7 +313,27 @@ export const requestSchema = z.discriminatedUnion('op', [
     files: z.array(z.string().min(1).max(4096)).min(1).max(1000),
   }),
   z.object({ op: z.literal('git.ignore'), projectId: id }),
-  z.object({ op: z.literal('git.diff'), workspaceId: id }),
+  z.object({ op: z.literal('git.diff'), workspaceId: id, taskId: id.optional() }),
+  z
+    .object({
+      op: z.literal('diff.feedback'),
+      conversationId: id,
+      workspaceId: id,
+      comments: z
+        .array(
+          z
+            .object({
+              file: z.string().min(1).max(1024),
+              line: z.number().int().min(1),
+              content: z.string().trim().min(1).max(4000),
+            })
+            .strict(),
+        )
+        .min(1)
+        .max(50),
+      note: z.string().trim().max(4000).optional(),
+    })
+    .strict(),
   z.object({
     op: z.literal('git.checkpoint'),
     workspaceId: id,

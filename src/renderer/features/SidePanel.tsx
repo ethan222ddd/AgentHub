@@ -286,6 +286,8 @@ export function SidePanel({
             diff={diff}
             preview={preview}
             tests={tests}
+            tasks={tasks}
+            conversationId={conversationId}
           />
         )}
       </div>

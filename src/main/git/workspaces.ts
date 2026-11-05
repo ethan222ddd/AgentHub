@@ -249,11 +249,14 @@ export class WorkspaceManager {
     }
     return items
   }
-  async diff(workspace: Workspace) {
+  /** Working tree against HEAD, or against an earlier revision (a task's start) when given. */
+  async diff(workspace: Workspace, since = 'HEAD') {
     await assertAssignedRoot(workspace.path)
+    if (since !== 'HEAD' && !/^[0-9a-f]{7,64}$/i.test(since)) throw new Error('Invalid revision')
     return {
       status: await git(workspace.path, ['status', '--short']),
-      diff: await git(workspace.path, ['diff', '--no-ext-diff', '--no-textconv', 'HEAD', '--']),
+      diff: await git(workspace.path, ['diff', '--no-ext-diff', '--no-textconv', since, '--']),
+      since,
       revision: await git(workspace.path, ['rev-parse', 'HEAD']),
       path: workspace.path,
       branch: workspace.branch,

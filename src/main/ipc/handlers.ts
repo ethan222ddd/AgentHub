@@ -4,12 +4,13 @@ import { backup } from 'node:sqlite'
 import { basename, join, resolve } from 'node:path'
 import { writeFile } from 'node:fs/promises'
 import { requestSchema } from '../../shared/schemas'
-import type { AgentProfile, Conversation, Project, Workspace } from '../../shared/types'
+import type { AgentProfile, Conversation, Project, Task, Workspace } from '../../shared/types'
 import { Store } from '../database/store'
 import { Orchestrator } from '../orchestrator/orchestrator'
 import { WorkspaceManager } from '../git/workspaces'
 import { Credentials } from '../app/credentials'
 import { validateRoot } from '../permissions/paths'
+import { diffFeedbackMessage } from '../orchestrator/feedback'
 import { AttachmentStore } from '../attachments/store'
 import { TestRunner } from '../tasks/tests'
 import { trace, diagnosticsPath } from '../app/diagnostics'
@@ -372,8 +373,26 @@ export function makeHandler(
         idle(request.projectId)
         await workspaces.addDefaultIgnore(request.projectId)
         return null
-      case 'git.diff':
-        return workspaces.diff(store.require<Workspace>('workspaces', request.workspaceId))
+      case 'git.diff': {
+        const workspace = store.require<Workspace>('workspaces', request.workspaceId)
+        if (!request.taskId) return workspaces.diff(workspace)
+        const task = store.require<Task>('tasks', request.taskId)
+        if (
+          task.projectId !== workspace.projectId ||
+          task.workspace !== workspace.path ||
+          !task.revision
+        )
+          throw new Error('That task did not run in this workspace')
+        return workspaces.diff(workspace, task.revision)
+      }
+      case 'diff.feedback': {
+        const c = store.require<Conversation>('conversations', request.conversationId)
+        const workspace = store.require<Workspace>('workspaces', request.workspaceId)
+        if (workspace.projectId !== c.projectId || (workspace.kind && workspace.kind !== 'agent'))
+          throw new Error('Comments must target an agent workspace in this project')
+        const content = await diffFeedbackMessage(workspace, request.comments, request.note)
+        return orchestrator.send(c.id, content, [workspace.agentId])
+      }
       case 'git.checkpoint': {
         const w = store.require<Workspace>('workspaces', request.workspaceId)
         idle(w.projectId)
