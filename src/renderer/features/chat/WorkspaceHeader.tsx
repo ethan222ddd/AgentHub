@@ -1,4 +1,4 @@
-import { Activity as ActivityIcon, Bot, GitBranch, PanelLeft, Workflow } from 'lucide-react'
+import { Activity as ActivityIcon, Bot, GitBranch, Network, PanelLeft, Workflow } from 'lucide-react'
 import type { Dispatch, SetStateAction } from 'react'
 import { taskStatusLabel } from '../../../shared/tasks'
 import type {
@@ -101,6 +101,14 @@ export function WorkspaceHeader({
           <ActivityIcon size={15} />
           <span>{text('活動', 'Activity')}</span>
           {!!roomApprovals.length && <b className="count">{roomApprovals.length}</b>}
+        </Button>
+        <Button
+          variant={panel === 'tasks' ? 'outline' : 'ghost'}
+          size="sm"
+          onClick={() => setPanel(panel === 'tasks' ? '' : 'tasks')}
+        >
+          <Network size={15} />
+          <span>{text('任務', 'Tasks')}</span>
         </Button>
         <Button
           variant={panel === 'changes' ? 'outline' : 'ghost'}

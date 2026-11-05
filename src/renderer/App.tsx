@@ -532,6 +532,7 @@ export function App() {
               approvals={roomApprovals}
               perform={perform}
               en={en}
+              allAgents={snapshot.agents}
             />
           )}
         </div>

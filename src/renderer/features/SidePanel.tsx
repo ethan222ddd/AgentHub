@@ -15,6 +15,7 @@ import type {
 import { Button } from '../components/ui'
 import { ActivityPanel } from './panels/ActivityPanel'
 import { ChangesPanel } from './panels/ChangesPanel'
+import { TaskMap } from './panels/TaskMap'
 import type { Diff } from './panels/types'
 import { Artifacts, Reviews } from './Reviews'
 
@@ -35,6 +36,7 @@ export function SidePanel({
   approvals,
   perform,
   en,
+  allAgents,
 }: {
   tab: string
   setTab(tab: string): void
@@ -52,6 +54,7 @@ export function SidePanel({
   approvals: Approval[]
   perform(request: Record<string, unknown>): Promise<unknown>
   en: boolean
+  allAgents: AgentProfile[]
 }) {
   const [workspaceId, setWorkspaceId] = useState(workspaces[0]?.id || '')
   const [diff, setDiff] = useState<Diff>()
@@ -80,25 +83,40 @@ export function SidePanel({
     const id = workspaceId || workspaces[0]?.id
     if (id) setDiff((await invoke({ op: 'git.diff', workspaceId: id })) as Diff)
   }
+  // Graph and board need room to breathe; open the task where its actions live.
+  const openTask = (id: string) => {
+    setTab('activity')
+    setTimeout(() => {
+      const element = document.getElementById(`task-${id}`) as HTMLDetailsElement | null
+      if (element) {
+        element.open = true
+        element.scrollIntoView({ block: 'center' })
+        element.querySelector('summary')?.focus()
+      }
+    }, 60)
+  }
+  const tabs: [string, string][] = [
+    ['activity', text('活動', 'Activity')],
+    ['tasks', text('任務', 'Tasks')],
+    ['changes', text('變更', 'Changes')],
+    ['reviews', text('審查', 'Reviews')],
+    ['artifacts', text('契約', 'Contracts')],
+  ]
   return (
-    <aside className="side-panel">
+    <aside className={`side-panel ${tab === 'tasks' ? 'wide' : ''}`}>
       <header>
-        <div className="tabs">
-          <button className={tab === 'activity' ? 'active' : ''} onClick={() => setTab('activity')}>
-            {text('活動', 'Activity')}
-          </button>
-          <button className={tab === 'changes' ? 'active' : ''} onClick={() => setTab('changes')}>
-            {text('變更', 'Changes')}
-          </button>
-          <button className={tab === 'reviews' ? 'active' : ''} onClick={() => setTab('reviews')}>
-            {text('審查', 'Reviews')}
-          </button>
-          <button
-            className={tab === 'artifacts' ? 'active' : ''}
-            onClick={() => setTab('artifacts')}
-          >
-            {text('契約', 'Contracts')}
-          </button>
+        <div className="tabs" role="tablist">
+          {tabs.map(([id, label]) => (
+            <button
+              key={id}
+              role="tab"
+              aria-selected={tab === id}
+              className={tab === id ? 'active' : ''}
+              onClick={() => setTab(id)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
         <Button size="icon" variant="ghost" aria-label="Close panel" onClick={close}>
           <X size={16} />
@@ -145,7 +163,15 @@ export function SidePanel({
             </div>
           </section>
         ))}
-        {tab === 'reviews' ? (
+        {tab === 'tasks' ? (
+          <TaskMap
+            tasks={tasks}
+            agents={agents}
+            allAgents={allAgents}
+            en={en}
+            openTask={openTask}
+          />
+        ) : tab === 'reviews' ? (
           <Reviews
             reviews={reviews}
             tasks={tasks}

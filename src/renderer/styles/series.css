@@ -1,0 +1,176 @@
+/* Shared insight tokens. Series slots are the validated categorical
+   palette (light vs #fafaf8, dark vs #1a1c1a); status tones are reserved and always ship
+   with an icon and a label. */
+:root {
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #6250d6;
+  --series-8: #e34948;
+  --series-other: #8b8d86;
+  --tone-good: #2f7d32;
+  --tone-warning: #9a6200;
+  --tone-critical: #c03535;
+  --tone-active: #2a78d6;
+  --chart-grid: #e6e6e0;
+  --chart-baseline: #c6c6bd;
+}
+:root[data-theme='dark'] {
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
+  --series-other: #7c8079;
+  --tone-good: #5fbf63;
+  --tone-warning: #e0a63a;
+  --tone-critical: #ef8075;
+  --tone-active: #6ea8ef;
+  --chart-grid: #2a2e2a;
+  --chart-baseline: #3a3f3a;
+}
+[data-slot='1'] {
+  --slot: var(--series-1);
+}
+[data-slot='2'] {
+  --slot: var(--series-2);
+}
+[data-slot='3'] {
+  --slot: var(--series-3);
+}
+[data-slot='4'] {
+  --slot: var(--series-4);
+}
+[data-slot='5'] {
+  --slot: var(--series-5);
+}
+[data-slot='6'] {
+  --slot: var(--series-6);
+}
+[data-slot='7'] {
+  --slot: var(--series-7);
+}
+[data-slot='8'] {
+  --slot: var(--series-8);
+}
+[data-slot='other'] {
+  --slot: var(--series-other);
+}
+.agent-swatch {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--slot, var(--series-other));
+}
+
+/* Side panel width follows the job: lists stay narrow, maps and charts get room. */
+.side-panel {
+  transition:
+    width 0.18s ease,
+    flex-basis 0.18s ease;
+}
+.side-panel.wide {
+  width: min(620px, 58vw);
+  flex-basis: min(620px, 58vw);
+}
+
+/* Status chip */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.status-chip svg {
+  flex-shrink: 0;
+}
+.tone-good .status-chip,
+.status-chip.tone-good {
+  color: var(--tone-good);
+}
+.tone-warning .status-chip,
+.status-chip.tone-warning {
+  color: var(--tone-warning);
+}
+.tone-critical .status-chip,
+.status-chip.tone-critical {
+  color: var(--tone-critical);
+}
+.tone-active .status-chip,
+.status-chip.tone-active {
+  color: var(--tone-active);
+}
+.spin {
+  animation: spin 1.4s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Toolbars shared by the task map and usage */
+.task-map-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.task-map-toolbar select {
+  font-size: 12px;
+  padding: 6px 8px;
+}
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--hover);
+}
+.segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.segmented button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--border);
+}
+.toggle-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-left: auto;
+}
+
+@media (max-width: 760px) {
+  .side-panel.wide {
+    width: min(100%, 560px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+  .side-panel {
+    transition: none;
+  }
+}
