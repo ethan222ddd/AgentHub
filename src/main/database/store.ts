@@ -275,6 +275,8 @@ export class Store {
     for (const task of this.list<Task>('tasks'))
       if (
         !task.supersededBy &&
+        // A plan awaiting approval ran read-only and has no in-flight side effects to inspect.
+        !(task.status === 'waiting_user' && task.waitReason === 'plan') &&
         ['pending', 'running', 'reviewing', 'waiting_agent', 'blocked', 'waiting_user'].includes(
           task.status,
         )

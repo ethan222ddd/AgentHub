@@ -11,6 +11,7 @@ import type {
   Task,
   Workspace,
 } from '../../shared/types'
+import { isPlanning } from '../../shared/tasks'
 import { AttachmentStore } from '../attachments/store'
 import { Store } from '../database/store'
 import { git } from '../git/workspaces'
@@ -42,6 +43,13 @@ export interface CollaborationHost {
   ): Task
   pump(): void
 }
+const planningOperations = new Set([
+  'search_context',
+  'read_context',
+  'read_artifact',
+  'report_progress',
+  'submit_plan',
+])
 export async function deliverCollaboration(
   host: CollaborationHost,
   task: Task,
@@ -50,6 +58,33 @@ export async function deliverCollaboration(
 ): Promise<unknown> {
   const c = host.store.require<Conversation>('conversations', task.conversationId)
   if (signal.aborted || c.stopped) throw new Error('Task or room stopped')
+  const current = host.store.get<Task>('tasks', task.id) || task
+  if (isPlanning(current) && !planningOperations.has(input.operation))
+    throw new Error(
+      'Planning phase: only read context/artifacts, report progress and submit_plan are allowed until the user approves the plan.',
+    )
+  if (input.operation === 'submit_plan') {
+    if (!isPlanning(current))
+      throw new Error('submit_plan is only accepted while a plan-first task is planning')
+    host.store.put('tasks', {
+      ...current,
+      plan: {
+        ...current.plan!,
+        content: input.content,
+        files: input.plan?.files || [],
+        steps: input.plan?.steps || [],
+        risks: input.plan?.risks || [],
+        verification: input.plan?.verification || '',
+        structured: true,
+        submittedAt: new Date().toISOString(),
+      },
+    })
+    host.changed()
+    return {
+      submitted: true,
+      note: 'Plan recorded. End this turn; the user will approve, edit or request revisions before any file is changed.',
+    }
+  }
   if (input.operation === 'search_context')
     return new ContextMemory(host.store.db).find(task.conversationId, input.content.slice(0, 500))
   if (input.operation === 'read_context')

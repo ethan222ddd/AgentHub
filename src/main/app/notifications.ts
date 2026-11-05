@@ -1,6 +1,6 @@
 import type { AppEvent, Approval, Conversation, Settings, Task } from '../../shared/types'
 
-export type NoticeKind = 'approval' | 'completed' | 'failed' | 'integration' | 'test'
+export type NoticeKind = 'approval' | 'plan' | 'completed' | 'failed' | 'integration' | 'test'
 export interface Notice {
   kind: NoticeKind
   conversationId?: string
@@ -40,7 +40,7 @@ export class DesktopNotifications {
   }
 
   private signature(task: Task): string {
-    return `${task.status}:${task.integration?.status || ''}`
+    return `${task.status}:${task.integration?.status || ''}:${task.waitReason === 'plan' ? 'plan' : ''}`
   }
 
   private safely(action: () => void): void {
@@ -60,12 +60,16 @@ export class DesktopNotifications {
     const { settings, conversations } = this.read()
     if (
       settings.notifications === 'off' ||
-      (settings.notifications === 'approvals' && kind !== 'approval' && kind !== 'test') ||
+      (settings.notifications === 'approvals' &&
+        kind !== 'approval' &&
+        kind !== 'plan' &&
+        kind !== 'test') ||
       (conversationId && !conversations.some((c) => c.id === conversationId))
     )
       return
     const labels: Record<NoticeKind, [string, string]> = {
       approval: ['代理正在等待批准', 'Agent approval required'],
+      plan: ['代理的計畫等待你批准', 'An agent plan is waiting for approval'],
       completed: ['代理任務已完成', 'Agent task completed'],
       failed: ['代理任務失敗', 'Agent task failed'],
       integration: ['程式碼整合需要處理', 'Code integration needs attention'],
@@ -104,6 +108,8 @@ export class DesktopNotifications {
           this.unreadFailures.add(task.id)
           this.show('failed', task.conversationId)
         } else if (task.status === 'completed') this.show('completed', task.conversationId)
+        else if (task.status === 'waiting_user' && task.waitReason === 'plan')
+          this.show('plan', task.conversationId)
         else if (task.status === 'waiting_user' && task.integration?.status === 'attention')
           this.show('integration', task.conversationId)
       }

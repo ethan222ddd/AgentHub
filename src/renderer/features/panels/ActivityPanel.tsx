@@ -231,6 +231,7 @@ export function ActivityPanel({
                   !task.supersededBy &&
                   task.waitReason !== 'approval' &&
                   task.waitReason !== 'integration' &&
+                  task.waitReason !== 'plan' &&
                   ['paused', 'failed', 'cancelled', 'waiting_user'].includes(task.status) && (
                     <Button
                       size="sm"

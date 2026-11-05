@@ -61,6 +61,7 @@ export function App() {
   const [reply, setReply] = useState<Message>()
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [sending, setSending] = useState(false)
+  const [planFirst, setPlanFirst] = useState(false)
   const [modelSaving, setModelSaving] = useState(false)
   const scroll = useRef<HTMLDivElement>(null)
   const nearBottom = useRef(true)
@@ -205,6 +206,7 @@ export function App() {
         recipients: [...new Set(targets)],
         replyTo: reply?.id,
         attachmentIds: attachments.map((a) => a.id),
+        ...(planFirst && targets.length ? { planFirst: true } : {}),
       })
       if (useWorkspace.getState().selectionEpoch === epoch) {
         setInput((value) => (value === sentInput ? '' : value))
@@ -515,6 +517,8 @@ export function App() {
               setModelSaving={setModelSaving}
               sending={sending}
               modelSaving={modelSaving}
+              planFirst={planFirst}
+              setPlanFirst={setPlanFirst}
             />
           </div>
           {panel && project && (

@@ -1,4 +1,4 @@
-import { ListChecks, ShieldAlert, X } from 'lucide-react'
+import { ClipboardCheck, ListChecks, ShieldAlert, X } from 'lucide-react'
 import { useState } from 'react'
 import type {
   Activity,
@@ -16,6 +16,7 @@ import type {
 import { Button } from '../components/ui'
 import { ActivityPanel } from './panels/ActivityPanel'
 import { ChangesPanel } from './panels/ChangesPanel'
+import { PlanReview } from './panels/PlanReview'
 import { TaskMap } from './panels/TaskMap'
 import { UsageTrends } from './panels/UsageTrends'
 import type { Diff } from './panels/types'
@@ -81,6 +82,9 @@ export function SidePanel({
     { id: string; operation: string; status: string; detail: string; time: string }[]
   >([])
   const text = (zh: string, eng: string) => (en ? eng : zh)
+  const plans = tasks.filter(
+    (t) => !t.supersededBy && t.status === 'waiting_user' && t.waitReason === 'plan' && t.plan,
+  )
   const invoke = async (request: Record<string, unknown>) => {
     setBusy(true)
     try {
@@ -148,6 +152,19 @@ export function SidePanel({
               <kbd>Shift</kbd>
               <kbd>A</kbd>
             </span>
+          </button>
+        )}
+        {tab === 'activity' &&
+          plans.map((task) => (
+            <PlanReview key={task.id} task={task} agents={agents} en={en} perform={perform} />
+          ))}
+        {tab !== 'activity' && !!plans.length && (
+          <button className="queue-banner plan-banner" onClick={() => setTab('activity')}>
+            <ClipboardCheck size={15} />
+            <span>
+              {text(`${plans.length} 份計畫等待批准`, `${plans.length} plans await approval`)}
+            </span>
+            <span className="queue-banner-action">{text('前往審核', 'Review')}</span>
           </button>
         )}
         {/* Full cards live in Activity; maps and charts keep their space with the banner. */}

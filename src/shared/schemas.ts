@@ -75,6 +75,7 @@ export const collaborationSchema = z
       'submit_review',
       'search_context',
       'read_context',
+      'submit_plan',
     ]),
     recipients: z.array(id).max(8),
     content: z.string().min(1).max(16000),
@@ -84,6 +85,15 @@ export const collaborationSchema = z
     messageIds: z.array(id).max(6).optional(),
     attachmentIds: z.array(id).max(8).optional(),
     verdict: z.enum(['approve', 'changes_requested']).optional(),
+    plan: z
+      .object({
+        files: z.array(z.string().min(1).max(1024)).max(60).default([]),
+        steps: z.array(z.string().min(1).max(2000)).max(30).default([]),
+        risks: z.array(z.string().min(1).max(2000)).max(20).default([]),
+        verification: z.string().max(4000).default(''),
+      })
+      .strict()
+      .optional(),
     comments: z
       .array(
         z
@@ -235,7 +245,17 @@ export const requestSchema = z.discriminatedUnion('op', [
     recipients: z.array(id).max(8),
     replyTo: id.optional(),
     attachmentIds: z.array(id).max(8).optional(),
+    planFirst: z.boolean().optional(),
   }),
+  z
+    .object({
+      op: z.literal('task.plan'),
+      id,
+      action: z.enum(['approve', 'revise', 'cancel']),
+      content: z.string().trim().min(1).max(32000).optional(),
+      feedback: z.string().trim().min(1).max(8000).optional(),
+    })
+    .strict(),
   z.object({ op: z.literal('stop'), conversationId: id }),
   z.object({ op: z.literal('resume'), conversationId: id }),
   z.object({ op: z.literal('task.action'), id, action: z.enum(['pause', 'resume', 'cancel']) }),

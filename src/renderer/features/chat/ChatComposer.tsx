@@ -3,6 +3,7 @@ import {
   AtSign,
   Bot,
   ChevronDown,
+  ClipboardCheck,
   MessageSquare,
   PanelRight,
   Paperclip,
@@ -60,6 +61,8 @@ interface Props {
   setModelSaving: Dispatch<SetStateAction<boolean>>
   sending: boolean
   modelSaving: boolean
+  planFirst: boolean
+  setPlanFirst: Dispatch<SetStateAction<boolean>>
 }
 export function ChatComposer({
   active,
@@ -92,6 +95,8 @@ export function ChatComposer({
   setModelSaving,
   sending,
   modelSaving,
+  planFirst,
+  setPlanFirst,
 }: Props) {
   return (
     <div className="composer-wrap">
@@ -262,6 +267,21 @@ export function ChatComposer({
             </div>
           </div>
           <div className="composer-right">
+            <Button
+              size="sm"
+              variant={planFirst ? 'outline' : 'ghost'}
+              className={`plan-toggle ${planFirst ? 'on' : ''}`}
+              aria-pressed={planFirst}
+              disabled={!recipients.length}
+              title={text(
+                '代理先在唯讀模式提出計畫，你批准後才開始改檔',
+                'Agents propose a plan read-only; files change only after you approve',
+              )}
+              onClick={() => setPlanFirst(!planFirst)}
+            >
+              <ClipboardCheck size={14} />
+              <span>{text('先提計畫', 'Plan first')}</span>
+            </Button>
             {conversation && (
               <ModelControl
                 key={conversation.id}

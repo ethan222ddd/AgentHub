@@ -24,6 +24,19 @@ import { deliverCollaboration } from './collaboration'
 import { executeTurn } from './execute-turn'
 import { createReview, requestReviewFix, type ReviewHost, type WorkflowReview } from './reviews'
 
+const planFirstFields = (): Pick<Task, 'planFirst' | 'plan'> => ({
+  planFirst: true,
+  plan: {
+    status: 'drafting',
+    content: '',
+    files: [],
+    steps: [],
+    risks: [],
+    verification: '',
+    structured: false,
+    revisions: 0,
+  },
+})
 export class Orchestrator {
   private running = new Map<string, AbortController>()
   private locks = new Set<string>()
@@ -61,6 +74,7 @@ export class Orchestrator {
     recipients: string[],
     replyTo?: string,
     attachmentIds: string[] = [],
+    planFirst = false,
   ): Message {
     const c = this.store.require<Conversation>('conversations', conversationId)
     if (c.stopped && recipients.length)
@@ -126,7 +140,10 @@ export class Orchestrator {
     this.store.put('messages', message)
     if (c.name === '新對話') this.store.put('conversations', { ...c, name: content.slice(0, 36) })
     for (const agentId of targets)
-      this.enqueue(c, agentId, content, message.id, 0, [], { attachmentIds })
+      this.enqueue(c, agentId, content, message.id, 0, [], {
+        attachmentIds,
+        ...(planFirst ? planFirstFields() : {}),
+      })
     this.changed()
     this.pump()
     return message
@@ -139,7 +156,17 @@ export class Orchestrator {
     depth: number,
     dependencies: string[],
     extra: Partial<
-      Pick<Task, 'workspaceId' | 'kind' | 'reviewId' | 'attachmentIds' | 'retryOf' | 'workflow'>
+      Pick<
+        Task,
+        | 'workspaceId'
+        | 'kind'
+        | 'reviewId'
+        | 'attachmentIds'
+        | 'retryOf'
+        | 'workflow'
+        | 'planFirst'
+        | 'plan'
+      >
     > = {},
   ): Task {
     if (
@@ -461,6 +488,68 @@ export class Orchestrator {
     this.changed()
     this.pump()
   }
+  /** Approve (optionally edited), send back for revision, or cancel a plan awaiting the user. */
+  planAction(
+    id: string,
+    action: 'approve' | 'revise' | 'cancel',
+    content?: string,
+    feedback?: string,
+  ): Task {
+    const task = this.store.require<Task>('tasks', id)
+    if (
+      !task.planFirst ||
+      !task.plan ||
+      task.status !== 'waiting_user' ||
+      task.waitReason !== 'plan' ||
+      task.supersededBy
+    )
+      throw new Error('This task is not waiting for plan approval')
+    if (this.running.has(id)) throw new Error('Task is still running')
+    if (action === 'cancel') {
+      const next = { ...task, status: 'cancelled' as const, waitReason: undefined }
+      this.store.put('tasks', next)
+      this.changed()
+      return next
+    }
+    const c = this.store.require<Conversation>('conversations', task.conversationId)
+    if (c.stopped) throw new Error('Room stopped. Resume before continuing this task.')
+    this.assertBudget(c.id)
+    if (this.turnCount(task.correlationId) >= this.store.settings().maxTurns)
+      throw new Error('Agent turn budget reached. Start a new user request to continue.')
+    if (action === 'revise') {
+      if (!feedback) throw new Error('Describe what the plan should change')
+      if (task.plan.revisions >= 5)
+        throw new Error('Plan revision limit reached. Edit the plan and approve it, or cancel.')
+    }
+    const next: Task = {
+      ...task,
+      status: 'pending',
+      waitReason: undefined,
+      error: undefined,
+      // Each extra phase is another native turn against the shared budget.
+      nativeTurns: (task.nativeTurns || 1) + 1,
+      plan:
+        action === 'approve'
+          ? {
+              ...task.plan,
+              status: 'approved',
+              content: content || task.plan.content,
+              approvedAt: new Date().toISOString(),
+            }
+          : {
+              ...task.plan,
+              status: 'revising',
+              feedback,
+              structured: false,
+              revisions: task.plan.revisions + 1,
+            },
+    }
+    this.store.put('tasks', next)
+    trace('task.plan-' + action, { taskId: id, agentId: task.agentId })
+    this.changed()
+    this.pump()
+    return next
+  }
   isBusy(projectId: string): boolean {
     return this.store
       .list<Task>('tasks')
@@ -632,6 +721,8 @@ export class Orchestrator {
           attachmentIds: task.attachmentIds,
           retryOf: task.id,
           workflow: task.workflow,
+          // A new attempt keeps the plan gate: an approved plan stays approved.
+          ...(task.planFirst ? { planFirst: true, plan: task.plan } : {}),
         },
       )
       resumed.name = task.name

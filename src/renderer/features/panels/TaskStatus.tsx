@@ -1,4 +1,5 @@
 import {
+  ClipboardCheck,
   CircleCheck,
   CircleDashed,
   CircleSlash,
@@ -43,6 +44,8 @@ function StatusIcon({ task }: { task: Task }) {
     case 'waiting_user':
       return task.waitReason === 'approval' ? (
         <ShieldAlert size={size} />
+      ) : task.waitReason === 'plan' ? (
+        <ClipboardCheck size={size} />
       ) : (
         <Hourglass size={size} />
       )

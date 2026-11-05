@@ -74,7 +74,24 @@ export type TaskStatus =
   | 'failed'
   | 'cancelled'
   | 'paused'
+/** Plan-first tasks pause after a read-only planning turn until the user approves. */
+export interface TaskPlan {
+  status: 'drafting' | 'awaiting' | 'approved' | 'revising'
+  content: string
+  files: string[]
+  steps: string[]
+  risks: string[]
+  verification: string
+  /** False when the agent answered in prose instead of the structured submit_plan tool. */
+  structured: boolean
+  feedback?: string
+  revisions: number
+  submittedAt?: string
+  approvedAt?: string
+}
 export interface Task {
+  planFirst?: boolean
+  plan?: TaskPlan
   workflow?: { runId: string; stepId: string }
   nativeTurns?: number
   integration?: {
@@ -86,7 +103,7 @@ export interface Task {
   runtime?: RuntimeSelection
   retryOf?: string
   supersededBy?: string
-  waitReason?: 'dependencies' | 'workspace_lock' | 'approval' | 'recovery' | 'integration'
+  waitReason?: 'dependencies' | 'workspace_lock' | 'approval' | 'recovery' | 'integration' | 'plan'
   blockedBy?: string[]
   failureKind?: 'runtime' | 'timeout' | 'cancelled' | 'interrupted'
   startedAt?: string

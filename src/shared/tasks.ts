@@ -1,6 +1,10 @@
 import type { Task } from './types'
 
 export const queuedStatuses = ['pending', 'waiting_agent', 'blocked']
+/** A plan-first task stays read-only until its plan is approved. */
+export function isPlanning(task: Task): boolean {
+  return !!task.planFirst && !!task.plan && task.plan.status !== 'approved'
+}
 export function isTaskActive(task: Task): boolean {
   return (
     !task.supersededBy &&
@@ -34,14 +38,18 @@ export function taskStatusLabel(task: Task, en = false): string {
     waiting_user: [
       task.waitReason === 'approval'
         ? '等待批准'
-        : task.waitReason === 'integration'
-          ? '主要專案整合需處理'
-          : '需要檢查後恢復',
+        : task.waitReason === 'plan'
+          ? '等待計畫批准'
+          : task.waitReason === 'integration'
+            ? '主要專案整合需處理'
+            : '需要檢查後恢復',
       task.waitReason === 'approval'
         ? 'Waiting for approval'
-        : task.waitReason === 'integration'
-          ? 'Integration needs attention'
-          : 'Recovery review required',
+        : task.waitReason === 'plan'
+          ? 'Plan awaiting approval'
+          : task.waitReason === 'integration'
+            ? 'Integration needs attention'
+            : 'Recovery review required',
     ],
     blocked: ['依賴受阻', 'Blocked by dependencies'],
     reviewing: ['審查中', 'Reviewing'],

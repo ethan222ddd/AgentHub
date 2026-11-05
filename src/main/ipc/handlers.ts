@@ -221,8 +221,16 @@ export function makeHandler(
           request.recipients,
           request.replyTo,
           request.attachmentIds,
+          request.planFirst,
         )
       }
+      case 'task.plan':
+        return orchestrator.planAction(
+          request.id,
+          request.action,
+          request.content,
+          request.feedback,
+        )
       case 'stop':
         orchestrator.stop(request.conversationId)
         return null
