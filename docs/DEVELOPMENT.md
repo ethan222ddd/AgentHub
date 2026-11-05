@@ -40,7 +40,7 @@ Git 根目錄建立後，原本位於 `.local` 的空資料夾會繼承父 Repos
 
 Windows workflow 由 push、PR 或 workflow_dispatch 觸發，執行鎖定依賴安裝、官方 Electron 安裝腳本、Typecheck、ESLint、生成檔追蹤檢查、免付費單元／整合測試、NSIS／Portable 打包及 Electron E2E。套件內的 `electron/install.js` 取代原本可能抓取其他套件的 `npm exec install-electron`。
 
-只給 `contents: read`；checkout 不持久化認證。相同分支新提交取消過期建置。成功產物保留七天，失敗會保留測試診斷；沒有把本機帳號、API Key 或訂閱憑證加入 CI。付費三家 Live 仍是另外明確執行的本機指令。
+只給 `contents: read`；checkout 不持久化認證。打包指令明確使用 `--publish never`，避免 electron-builder 在 CI 中因偵測到 GitHub Repository 而自動發佈 Release、要求不必要的發佈 Token。相同分支新提交取消過期建置。成功產物保留七天，失敗會保留測試診斷；沒有把本機帳號、API Key 或訂閱憑證加入 CI。付費三家 Live 仍是另外明確執行的本機指令。
 
 本次本機範圍：Typecheck、ESLint、Build、5 個相關測試檔 34 項，以及 Electron 7 項通過／1 項因未先本機打包而略過。遠端 CI 會完整執行免付費 suite 並在打包後執行該案例；最終是否成功以 Actions 的實際 run 與 SHA 為準，不能拿本機結果當成遠端成功。
 

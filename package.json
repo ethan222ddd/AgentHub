@@ -44,8 +44,8 @@
     "test:installed-upgrade": "tsx scripts/live-installed-upgrade.ts",
     "benchmark:context": "tsx scripts/benchmark-context.ts",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build",
-    "package:win": "npm run build && electron-builder --win nsis portable --x64",
-    "package:dir": "npm run build && electron-builder --win dir --x64",
+    "package:win": "npm run build && electron-builder --win nsis portable --x64 --publish never",
+    "package:dir": "npm run build && electron-builder --win dir --x64 --publish never",
     "protocol:codex": "codex app-server generate-ts --experimental --out .protocol/codex"
   },
   "dependencies": {
