@@ -23,6 +23,7 @@ import type {
 } from '../../shared/types'
 
 export const defaults: Settings = {
+  autonomy: 'auto',
   notifications: 'all',
   maxUsageTokens: 200000,
   maxCostUsd: 5,
@@ -33,7 +34,7 @@ export const defaults: Settings = {
   reviewerId: '',
   theme: 'system',
   language: 'zh-TW',
-  maxTurns: 12,
+  maxTurns: 20,
   maxConcurrent: 3,
   maxDepth: 3,
   maxFanout: 3,
@@ -275,6 +276,8 @@ export class Store {
     for (const task of this.list<Task>('tasks'))
       if (
         !task.supersededBy &&
+        // A plan awaiting approval ran read-only and has no in-flight side effects to inspect.
+        !(task.status === 'waiting_user' && task.waitReason === 'plan') &&
         ['pending', 'running', 'reviewing', 'waiting_agent', 'blocked', 'waiting_user'].includes(
           task.status,
         )

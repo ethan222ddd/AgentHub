@@ -11,6 +11,32 @@ export function CollaborationSettings({ text, settings, setSettings, agents }: P
     <>
       <h3>{text('有邊界的協作', 'Bounded collaboration')}</h3>
       <label>
+        {text('代理工具請求', 'Agent tool requests')}
+        <select
+          aria-label={text('自主程度', 'Autonomy')}
+          value={settings.autonomy}
+          onChange={(e) =>
+            setSettings({ ...settings, autonomy: e.target.value as SettingsType['autonomy'] })
+          }
+        >
+          <option value="auto">
+            {text(
+              '全自動：依安全規則自動批准，一次 prompt 跑到完成',
+              'Autonomous: host policy approves; one prompt runs to completion',
+            )}
+          </option>
+          <option value="ask">
+            {text('逐筆批准：每個工具請求都等我', 'Ask me: every tool request waits for me')}
+          </option>
+        </select>
+      </label>
+      <p className="muted">
+        {text(
+          '全自動仍會拒絕推送、改寫 Git 歷史、碰觸憑證、變更系統與刪除工作區外檔案；每筆自動決定都記在活動紀錄。傳給多位代理時，由一位領導代理先定介面再分工；整合失敗會自動交回負責代理修正（最多 2 次）。',
+          'Autonomous mode still denies pushes, Git history rewrites, credentials, system changes and deletes outside the workspace, and logs every decision in Activity. A prompt to several agents goes to a lead who defines the contract and assigns the rest; failed integrations go back to the owning agent (up to 2 fixes).',
+        )}
+      </p>
+      <label>
         {text('新聊天室預設模式', 'Default room mode')}
         <select
           value={settings.defaultMode}

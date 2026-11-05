@@ -1,4 +1,4 @@
-import { ListChecks, ShieldAlert, X } from 'lucide-react'
+import { ClipboardCheck, ListChecks, ShieldAlert, X } from 'lucide-react'
 import { useState } from 'react'
 import type {
   Activity,
@@ -7,6 +7,7 @@ import type {
   Artifact,
   Conversation,
   Project,
+  ProjectOverlaps,
   Review,
   Task,
   TestRun,
@@ -16,6 +17,8 @@ import type {
 import { Button } from '../components/ui'
 import { ActivityPanel } from './panels/ActivityPanel'
 import { ChangesPanel } from './panels/ChangesPanel'
+import { PlanReview } from './panels/PlanReview'
+import { DecisionLog } from './panels/DecisionLog'
 import { TaskMap } from './panels/TaskMap'
 import { UsageTrends } from './panels/UsageTrends'
 import type { Diff } from './panels/types'
@@ -43,6 +46,7 @@ export function SidePanel({
   allTasks,
   conversations,
   openQueue,
+  overlaps,
 }: {
   tab: string
   setTab(tab: string): void
@@ -65,6 +69,7 @@ export function SidePanel({
   allTasks: Task[]
   conversations: Conversation[]
   openQueue(): void
+  overlaps?: ProjectOverlaps
 }) {
   const [workspaceId, setWorkspaceId] = useState(workspaces[0]?.id || '')
   const [diff, setDiff] = useState<Diff>()
@@ -81,6 +86,10 @@ export function SidePanel({
     { id: string; operation: string; status: string; detail: string; time: string }[]
   >([])
   const text = (zh: string, eng: string) => (en ? eng : zh)
+  const proposedDecisions = (project.decisions || []).filter((d) => d.status === 'proposed').length
+  const plans = tasks.filter(
+    (t) => !t.supersededBy && t.status === 'waiting_user' && t.waitReason === 'plan' && t.plan,
+  )
   const invoke = async (request: Record<string, unknown>) => {
     setBusy(true)
     try {
@@ -112,9 +121,10 @@ export function SidePanel({
     ['changes', text('變更', 'Changes')],
     ['reviews', text('審查', 'Reviews')],
     ['artifacts', text('契約', 'Contracts')],
+    ['decisions', text('決策', 'Decisions')],
   ]
   return (
-    <aside className={`side-panel ${tab === 'tasks' || tab === 'usage' ? 'wide' : ''}`}>
+    <aside className={`side-panel ${['tasks', 'usage', 'changes'].includes(tab) ? 'wide' : ''}`}>
       <header>
         <div className="tabs" role="tablist">
           {tabs.map(([id, label]) => (
@@ -126,6 +136,9 @@ export function SidePanel({
               onClick={() => setTab(id)}
             >
               {label}
+              {id === 'decisions' && !!proposedDecisions && (
+                <b className="count">{proposedDecisions}</b>
+              )}
             </button>
           ))}
         </div>
@@ -148,6 +161,19 @@ export function SidePanel({
               <kbd>Shift</kbd>
               <kbd>A</kbd>
             </span>
+          </button>
+        )}
+        {tab === 'activity' &&
+          plans.map((task) => (
+            <PlanReview key={task.id} task={task} agents={agents} en={en} perform={perform} />
+          ))}
+        {tab !== 'activity' && !!plans.length && (
+          <button className="queue-banner plan-banner" onClick={() => setTab('activity')}>
+            <ClipboardCheck size={15} />
+            <span>
+              {text(`${plans.length} 份計畫等待批准`, `${plans.length} plans await approval`)}
+            </span>
+            <span className="queue-banner-action">{text('前往審核', 'Review')}</span>
           </button>
         )}
         {/* Full cards live in Activity; maps and charts keep their space with the banner. */}
@@ -199,6 +225,9 @@ export function SidePanel({
             allAgents={allAgents}
             en={en}
             openTask={openTask}
+            overlaps={overlaps}
+            projectId={project.id}
+            perform={perform}
           />
         ) : tab === 'usage' ? (
           <UsageTrends
@@ -210,6 +239,8 @@ export function SidePanel({
             projectId={project.id}
             en={en}
           />
+        ) : tab === 'decisions' ? (
+          <DecisionLog project={project} agents={allAgents} en={en} perform={perform} />
         ) : tab === 'reviews' ? (
           <Reviews
             reviews={reviews}
@@ -255,6 +286,8 @@ export function SidePanel({
             diff={diff}
             preview={preview}
             tests={tests}
+            tasks={tasks}
+            conversationId={conversationId}
           />
         )}
       </div>

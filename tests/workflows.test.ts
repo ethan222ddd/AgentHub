@@ -119,6 +119,7 @@ describe('Versioned coding workflows', { timeout: 60000 }, () => {
     'does not certify a review that %s (fixture adapter)',
     async (mode) => {
       const store = new Store(':memory:')
+      store.put('settings', { ...store.settings(), id: 'general', autonomy: 'ask' })
       const project = store.addProject(await repository(), 'Incomplete review')
       const manager = new WorkspaceManager(store, await directory())
       const [source] = await manager.prepare(project, false)

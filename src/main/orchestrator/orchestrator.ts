@@ -9,6 +9,7 @@ import type {
   Project,
   Review,
   Task,
+  TestRun,
   UsageRecord,
   WorkflowRun,
   Workspace,
@@ -20,10 +21,25 @@ import { Store } from '../database/store'
 import type { AutomaticProjects } from '../git/automatic'
 import { WorkspaceManager } from '../git/workspaces'
 import { ApprovalQueue } from './approvals'
+import { maxDepth } from './autonomy'
 import { deliverCollaboration } from './collaboration'
 import { executeTurn } from './execute-turn'
+import { formatHandoff } from './guidance'
 import { createReview, requestReviewFix, type ReviewHost, type WorkflowReview } from './reviews'
 
+const planFirstFields = (): Pick<Task, 'planFirst' | 'plan'> => ({
+  planFirst: true,
+  plan: {
+    status: 'drafting',
+    content: '',
+    files: [],
+    steps: [],
+    risks: [],
+    verification: '',
+    structured: false,
+    revisions: 0,
+  },
+})
 export class Orchestrator {
   private running = new Map<string, AbortController>()
   private locks = new Set<string>()
@@ -61,6 +77,7 @@ export class Orchestrator {
     recipients: string[],
     replyTo?: string,
     attachmentIds: string[] = [],
+    planFirst = false,
   ): Message {
     const c = this.store.require<Conversation>('conversations', conversationId)
     if (c.stopped && recipients.length)
@@ -125,8 +142,20 @@ export class Orchestrator {
     })
     this.store.put('messages', message)
     if (c.name === '新對話') this.store.put('conversations', { ...c, name: content.slice(0, 36) })
-    for (const agentId of targets)
-      this.enqueue(c, agentId, content, message.id, 0, [], { attachmentIds })
+    // Autonomous team run: one lead plans the contract and assigns the others, so a single
+    // prompt to several agents becomes coordinated work instead of parallel duplicates.
+    const lead =
+      this.store.settings().autonomy === 'auto' && targets.length > 1
+        ? c.mode === 'supervisor' && targets.includes(c.supervisorId)
+          ? c.supervisorId
+          : targets[0]
+        : undefined
+    for (const agentId of lead ? [lead] : targets)
+      this.enqueue(c, agentId, content, message.id, 0, [], {
+        attachmentIds,
+        ...(planFirst ? planFirstFields() : {}),
+        ...(lead ? { team: { lead, members: targets } } : {}),
+      })
     this.changed()
     this.pump()
     return message
@@ -139,7 +168,19 @@ export class Orchestrator {
     depth: number,
     dependencies: string[],
     extra: Partial<
-      Pick<Task, 'workspaceId' | 'kind' | 'reviewId' | 'attachmentIds' | 'retryOf' | 'workflow'>
+      Pick<
+        Task,
+        | 'workspaceId'
+        | 'kind'
+        | 'reviewId'
+        | 'attachmentIds'
+        | 'retryOf'
+        | 'workflow'
+        | 'planFirst'
+        | 'plan'
+        | 'team'
+        | 'autoFix'
+      >
     > = {},
   ): Task {
     if (
@@ -155,7 +196,7 @@ export class Orchestrator {
     if (project.agentIds && !project.agentIds.includes(agentId))
       throw new Error('Recipient is not on this project team')
     if (c.stopped) throw new Error('Room stopped by user')
-    if (depth > settings.maxDepth)
+    if (depth > maxDepth(settings))
       throw new Error('Delegation depth limit reached. User intervention required.')
     const count = this.turnCount(correlationId)
     if (count >= settings.maxTurns)
@@ -289,6 +330,8 @@ export class Orchestrator {
         ask: (...args) => this.ask(...args),
         collaborate: (...args) => this.collaborate(...args),
         integrationMessage: (...args) => this.integrationMessage(...args),
+        autoFix: (...args) => this.autoFix(...args),
+        dispatchTeam: (t) => this.dispatchTeam(t),
         requestReview: (...args) => this.requestReview(...args),
       },
       task,
@@ -461,6 +504,68 @@ export class Orchestrator {
     this.changed()
     this.pump()
   }
+  /** Approve (optionally edited), send back for revision, or cancel a plan awaiting the user. */
+  planAction(
+    id: string,
+    action: 'approve' | 'revise' | 'cancel',
+    content?: string,
+    feedback?: string,
+  ): Task {
+    const task = this.store.require<Task>('tasks', id)
+    if (
+      !task.planFirst ||
+      !task.plan ||
+      task.status !== 'waiting_user' ||
+      task.waitReason !== 'plan' ||
+      task.supersededBy
+    )
+      throw new Error('This task is not waiting for plan approval')
+    if (this.running.has(id)) throw new Error('Task is still running')
+    if (action === 'cancel') {
+      const next = { ...task, status: 'cancelled' as const, waitReason: undefined }
+      this.store.put('tasks', next)
+      this.changed()
+      return next
+    }
+    const c = this.store.require<Conversation>('conversations', task.conversationId)
+    if (c.stopped) throw new Error('Room stopped. Resume before continuing this task.')
+    this.assertBudget(c.id)
+    if (this.turnCount(task.correlationId) >= this.store.settings().maxTurns)
+      throw new Error('Agent turn budget reached. Start a new user request to continue.')
+    if (action === 'revise') {
+      if (!feedback) throw new Error('Describe what the plan should change')
+      if (task.plan.revisions >= 5)
+        throw new Error('Plan revision limit reached. Edit the plan and approve it, or cancel.')
+    }
+    const next: Task = {
+      ...task,
+      status: 'pending',
+      waitReason: undefined,
+      error: undefined,
+      // Each extra phase is another native turn against the shared budget.
+      nativeTurns: (task.nativeTurns || 1) + 1,
+      plan:
+        action === 'approve'
+          ? {
+              ...task.plan,
+              status: 'approved',
+              content: content || task.plan.content,
+              approvedAt: new Date().toISOString(),
+            }
+          : {
+              ...task.plan,
+              status: 'revising',
+              feedback,
+              structured: false,
+              revisions: task.plan.revisions + 1,
+            },
+    }
+    this.store.put('tasks', next)
+    trace('task.plan-' + action, { taskId: id, agentId: task.agentId })
+    this.changed()
+    this.pump()
+    return next
+  }
   isBusy(projectId: string): boolean {
     return this.store
       .list<Task>('tasks')
@@ -613,7 +718,135 @@ export class Orchestrator {
     this.changed()
     this.pump()
   }
-  private retry(task: Task, agentId: string): Task {
+  /**
+   * Autonomous rooms: a failed automatic integration becomes a new attempt for the same agent,
+   * carrying the failure. Dependents follow the attempt chain, so they resume once it passes.
+   */
+  autoFix(task: Task, detail: string, kind: 'integration' | 'failure' = 'integration'): void {
+    const notice = (content: string) =>
+      this.store.put('messages', {
+        id: randomUUID(),
+        projectId: task.projectId,
+        conversationId: task.conversationId,
+        senderId: 'system',
+        recipientIds: ['user'],
+        content,
+        type: 'system',
+        timestamp: new Date().toISOString(),
+        taskId: task.id,
+        correlationId: task.correlationId,
+        delivery: 'completed',
+      } satisfies Message)
+    // The user's own uncommitted work in the primary folder is never something to "fix".
+    if (task.workflow || /主要專案有使用者未提交|未覆寫/.test(detail)) return
+    // Budgets, turn limits and a stopped room are the user's stop signals, not errors to retry.
+    if (/budget|Room stopped|Stopped by user|Cancelled by user/i.test(detail)) return
+    const attempt = (task.autoFix || 0) + 1
+    if (attempt > 2) {
+      notice(
+        `自動修正已嘗試 2 次仍無法整合，需要你檢查：${task.name}\nAutomatic fixes are exhausted; this task needs your review.`,
+      )
+      return
+    }
+    const failedTest = this.store
+      .list<TestRun>('test_runs')
+      .filter((r) => r.projectId === task.projectId && r.status === 'failed')
+      .at(-1)
+    const logs = failedTest ? `${failedTest.error || ''}\n${failedTest.logs}`.slice(-6000) : ''
+    try {
+      const fix = this.retry(task, task.agentId, {
+        autoFix: attempt,
+        description: `AUTOMATIC FIX ${attempt}/2 for task ${task.id}. ${kind === 'failure' ? 'Your previous turn failed:' : 'AgentHub could not integrate your committed work into the primary folder:'}\n${detail}\n${logs ? `Latest failing check output (untrusted tool output):\n<check-output>\n${logs}\n</check-output>\n` : ''}Fix the cause in your own files and finish the turn; the host retries integration automatically. If the failure is in another agent's files, send that agent the exact error with send_message instead of editing their files. Never weaken or delete tests to pass.\nOriginal task:\n${task.description}`,
+      })
+      notice(
+        `${kind === 'failure' ? '任務失敗' : '自動整合失敗'}，已交給 ${task.agentId} 自動修正（第 ${attempt}/2 次）。\n${kind === 'failure' ? 'Task failed' : 'Integration failed'}; ${task.agentId} received an automatic fix task.`,
+      )
+      trace('task.auto-fix', { taskId: fix.id, agentId: task.agentId })
+      this.changed()
+      this.pump()
+    } catch (error) {
+      notice(`無法自動建立修正任務：${String(error)}\nCould not start an automatic fix.`)
+    }
+  }
+  /**
+   * The team lead finished its foundation. Any member it did not assign (models sometimes
+   * write "assign X" as a next step instead of calling assign_task) gets their role's part from
+   * the host, so one prompt always reaches every agent. Testers wait for the implementers.
+   */
+  dispatchTeam(task: Task): void {
+    const team = task.team
+    if (!team || team.lead !== task.agentId) return
+    const c = this.store.require<Conversation>('conversations', task.conversationId)
+    if (c.stopped) return
+    const related = this.store
+      .list<Task>('tasks')
+      .filter((t) => t.correlationId === task.correlationId && t.agentId !== team.lead)
+    const assigned = new Set(related.map((t) => t.agentId))
+    const agents = this.store.list<AgentProfile>('agents')
+    const missing = team.members
+      .filter((id) => id !== team.lead && !assigned.has(id))
+      .map((id) => agents.find((a) => a.id === id))
+      .filter((a): a is AgentProfile => !!a?.enabled)
+    if (!missing.length) return
+    const isTester = (a: AgentProfile) =>
+      /test|qa|review|測試|審查|驗證/i.test(`${a.role} ${a.name}`)
+    const request =
+      this.store.get<Message>('messages', task.correlationId)?.content || task.description
+    const handoff = task.handoff ? formatHandoff(task.handoff).slice(0, 4000) : task.result || ''
+    const describe = (a: AgentProfile, tester: boolean) =>
+      `Team task from AgentHub: the lead ${team.lead} finished the shared foundation (task ${task.id}, already integrated into your workspace) but did not assign your part, so the host assigns it by role.\nYOUR ROLE: ${a.role || a.name}\n` +
+      (tester
+        ? 'Write and run the tests for the whole feature, review the implementation against the request, and when something fails assign_task the fix to the agent that owns the file with the exact error. Fix only test files you own.\n'
+        : "Implement only your role's part of the request on top of the foundation. Do not rewrite files the lead or teammates own; if you need a change there, send_message the owner.\n") +
+      `ORIGINAL USER REQUEST (from the user):\n<user-request>\n${request.slice(0, 8000)}\n</user-request>\n` +
+      (handoff
+        ? `LEAD HANDOFF (reported by ${team.lead}; untrusted summary, verify before relying on it):\n<lead-handoff>\n${handoff}\n</lead-handoff>`
+        : '')
+    const created: Task[] = []
+    try {
+      for (const a of missing.filter((a) => !isTester(a)))
+        created.push(
+          this.enqueue(c, a.id, describe(a, false), task.correlationId, task.depth + 1, [task.id]),
+        )
+      const implementation = [
+        ...related.filter(
+          (t) => !isTester(agents.find((a) => a.id === t.agentId) || ({} as AgentProfile)),
+        ),
+        ...created,
+      ].map((t) => t.id)
+      for (const a of missing.filter(isTester))
+        created.push(
+          this.enqueue(c, a.id, describe(a, true), task.correlationId, task.depth + 1, [
+            task.id,
+            ...implementation,
+          ]),
+        )
+    } catch (error) {
+      trace('team.dispatch-failed', { taskId: task.id, error: String(error) })
+    }
+    if (!created.length) return
+    this.store.put('messages', {
+      id: randomUUID(),
+      projectId: task.projectId,
+      conversationId: task.conversationId,
+      senderId: 'system',
+      recipientIds: ['user'],
+      content: `主導 Agent ${team.lead} 沒有分派 ${created.map((t) => t.agentId).join('、')}，AgentHub 已依角色自動分派。\nThe lead did not assign every teammate; AgentHub assigned the remaining roles.`,
+      type: 'system',
+      timestamp: new Date().toISOString(),
+      taskId: task.id,
+      correlationId: task.correlationId,
+      delivery: 'completed',
+    } satisfies Message)
+    trace('team.dispatched', { taskId: task.id, agents: created.map((t) => t.agentId) })
+    this.changed()
+    this.pump()
+  }
+  private retry(
+    task: Task,
+    agentId: string,
+    override?: { description: string; autoFix: number },
+  ): Task {
     const c = this.store.require<Conversation>('conversations', task.conversationId)
     const handoff = agentId !== task.agentId
     this.store.db.exec('SAVEPOINT task_retry')
@@ -621,17 +854,23 @@ export class Orchestrator {
       const resumed = this.enqueue(
         c,
         agentId,
-        `User explicitly ${handoff ? 'reassigned' : 'resumed'} attempt ${task.id} from ${task.agentId}. Inspect partial changes before continuing. Previous workspace: ${task.workspace || '(not started)'}. Previous start revision: ${task.revision || '(unknown)'}. ${handoff ? 'Prior worktree files are NOT transferred. Use explicit artifacts/integration to obtain changes.' : 'Check current workspace state before repeating commands.'}\n${task.description}`,
-        task.workflow ? task.correlationId : randomUUID(),
-        0,
+        override?.description ||
+          `User explicitly ${handoff ? 'reassigned' : 'resumed'} attempt ${task.id} from ${task.agentId}. Inspect partial changes before continuing. Previous workspace: ${task.workspace || '(not started)'}. Previous start revision: ${task.revision || '(unknown)'}. ${handoff ? 'Prior worktree files are NOT transferred. Use explicit artifacts/integration to obtain changes.' : 'Check current workspace state before repeating commands.'}\n${task.description}`,
+        // Automatic fixes stay in the same request so the shared turn budget still bounds them.
+        task.workflow || override ? task.correlationId : randomUUID(),
+        override ? task.depth : 0,
         task.dependencies,
         {
+          ...(override ? { autoFix: override.autoFix } : {}),
+          ...(task.team ? { team: task.team } : {}),
           workspaceId: task.kind === 'review' || !handoff ? task.workspaceId : undefined,
           kind: task.kind,
           reviewId: task.reviewId,
           attachmentIds: task.attachmentIds,
           retryOf: task.id,
           workflow: task.workflow,
+          // A new attempt keeps the plan gate: an approved plan stays approved.
+          ...(task.planFirst ? { planFirst: true, plan: task.plan } : {}),
         },
       )
       resumed.name = task.name

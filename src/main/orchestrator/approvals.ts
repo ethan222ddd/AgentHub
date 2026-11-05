@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto'
-import type { AppEvent, Approval, Task, Workspace } from '../../shared/types'
+import type { Activity, AppEvent, Approval, Project, Task, Workspace } from '../../shared/types'
 import { Store } from '../database/store'
 import { redact } from '../permissions/paths'
+import { autoDecision } from './autonomy'
 
 interface ApprovalEvents {
   isClosing(): boolean
@@ -27,6 +28,28 @@ export class ApprovalQueue {
       'workspaces',
       task.workspaceId || `${task.projectId}:${task.agentId}`,
     )
+    if (this.store.settings().autonomy === 'auto') {
+      const project = this.store.get<Project>('projects', task.projectId)
+      const decision = autoDecision(tool, detail, [
+        workspace?.path || task.workspace || '',
+        project?.path || '',
+      ])
+      const activity: Activity = {
+        id: randomUUID(),
+        agentId: task.agentId,
+        sessionId: '',
+        taskId: task.id,
+        turnId: task.id,
+        conversationId: task.conversationId,
+        type: decision.allow ? 'approval.auto-allowed' : 'approval.auto-denied',
+        detail: redact(`${tool}: ${decision.reason}
+${detail}`).slice(0, 4000),
+        timestamp: new Date().toISOString(),
+      }
+      this.store.activity(activity)
+      this.events.publish({ type: 'activity', activity })
+      return Promise.resolve(decision.allow)
+    }
     const canRemember = !!workspace && ['Read', 'Glob', 'Grep'].includes(tool)
     const permissionId = `${task.projectId}:${task.agentId}:${tool}:${workspace?.path}`
     if (canRemember && this.store.get('permissions', permissionId)) return Promise.resolve(true)

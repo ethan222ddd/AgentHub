@@ -40,6 +40,7 @@ class FixtureAdapter implements AgentAdapter {
 }
 async function setup(adapter: AgentAdapter, events: AppEvent[] = []) {
   const store = new Store(':memory:')
+  store.put('settings', { ...store.settings(), id: 'general', autonomy: 'ask' })
   const p = store.addProject(await repository(), 'Repo')
   const c = store.snapshot().conversations[0]
   const manager = new WorkspaceManager(store, await directory('orchestrator-'))
@@ -245,6 +246,7 @@ describe('Orchestrator — test adapters, no paid API required', () => {
   })
   it('persists an actionable agent error in the chat when preflight fails before launching any runtime', async () => {
     const store = new Store(':memory:')
+    store.put('settings', { ...store.settings(), id: 'general', autonomy: 'ask' })
     const p = store.addProject('C:\\not-used', 'Missing workspace')
     const c = store.snapshot().conversations.find((c) => c.projectId === p.id)!
     const adapter = new FixtureAdapter()

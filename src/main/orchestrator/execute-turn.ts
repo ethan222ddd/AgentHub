@@ -19,8 +19,30 @@ import { Store } from '../database/store'
 import type { AutomaticProjects } from '../git/automatic'
 import { git } from '../git/workspaces'
 import { assertAssignedRoot, redact } from '../permissions/paths'
+import { isPlanning } from '../../shared/tasks'
+import { taskGuidance } from './guidance'
 
 import type { RunContext } from '../agents/adapter'
+export const AUTONOMOUS_AGY_COMMANDS = [
+  // Windows PowerShell blocks the npm.ps1/npx.ps1 shims; the .cmd shims run under any policy.
+  'npm.cmd install',
+  'npm.cmd ci',
+  'npm.cmd test',
+  'npm.cmd run test',
+  'npm.cmd run build',
+  'npx.cmd vitest run',
+  'npx.cmd tsc --noEmit',
+  'npm install',
+  'npm ci',
+  'npm test',
+  'npm run test',
+  'npm run build',
+  'npx vitest run',
+  'npx tsc --noEmit',
+  'git status',
+  'git diff',
+  'git log --oneline -5',
+]
 export interface TurnHost {
   store: Store
   adapters: Map<string, AgentAdapter>
@@ -49,6 +71,8 @@ export interface TurnHost {
   ): Promise<boolean>
   collaborate(task: Task, input: CollaborationInput, signal: AbortSignal): Promise<unknown>
   integrationMessage(task: Task, integration: NonNullable<Task['integration']>): void
+  autoFix(task: Task, detail: string, kind?: 'integration' | 'failure'): void
+  dispatchTeam(task: Task): void
   requestReview(
     workspaceId: string,
     conversationId: string,
@@ -67,12 +91,29 @@ export async function executeTurn(
   if (project.autoManaged && task.kind !== 'review')
     agent.instructions +=
       '\nAgentHub automatically checks and integrates completed changes into the selected primary folder. For Node projects, provide a meaningful npm test script when implementing code. Never weaken tests merely to pass. Static HTML/CSS-only projects receive explicitly labelled basic static checks. Do not commit credentials. The host handles worktree setup and integration; do not reset, clean, force-push or manually change worktree registration.'
+  // Antigravity runs only exactly listed commands; autonomous rooms give it the usual dev loop.
+  if (host.store.settings().autonomy === 'auto' && agent.provider === 'antigravity') {
+    // Union, so a profile's own list never hides the standard dev loop the prompt promises.
+    agent.commandAllowlist = [
+      ...new Set([...(agent.commandAllowlist || []), ...AUTONOMOUS_AGY_COMMANDS]),
+    ]
+    if (!agent.networkAllowlist?.length) agent.networkAllowlist = ['registry.npmjs.org']
+  }
   const adapter = host.adapters.get(agent.provider)
+  // Plan-first tasks run read-only until the user approves the submitted plan.
+  const planning = isPlanning(task)
   let persistTimer: NodeJS.Timeout | undefined
-  const timeout = setTimeout(
-    () => controller.abort(new Error('Task timeout')),
-    host.store.settings().timeoutMs,
-  )
+  // Time spent waiting for the user's approval does not count against the task's runtime.
+  const limit = host.store.settings().timeoutMs
+  const expire = (): NodeJS.Timeout =>
+    setTimeout(() => {
+      if (host.store.get<Task>('tasks', task.id)?.waitReason === 'approval') {
+        timeout = expire()
+        return
+      }
+      controller.abort(new Error('Task timeout'))
+    }, limit)
+  let timeout = expire()
   // Persist the reply before preflight so workspace/launch failures are visible in the room.
   const message: Message = {
     id: randomUUID(),
@@ -205,13 +246,18 @@ export async function executeTurn(
       trace('session.persisted', { taskId: task.id, agentId: agent.id, sessionId: nativeId })
     }
     const workspaceBefore =
-      project.autoManaged && task.kind !== 'review' && host.automatic && !task.retryOf
+      project.autoManaged && task.kind !== 'review' && !planning && host.automatic && !task.retryOf
         ? await host.automatic.capture(workspace)
         : undefined
+    const planGuard = planning
+      ? await git(workspace.path, ['status', '--porcelain', '--untracked-files=all'])
+      : ''
     controller.signal.throwIfAborted()
     const result = await adapter.run({
       images: new AttachmentStore(host.store).images(task.projectId, task.attachmentIds || []),
-      readOnly: task.kind === 'review',
+      readOnly: task.kind === 'review' || planning,
+      networkAccess: host.store.settings().autonomy === 'auto',
+      tolerateDenials: host.store.settings().autonomy === 'auto',
       maxCostUsd: host.remainingCost(task.conversationId),
       usage: (usage) =>
         host.recordUsage(
@@ -248,7 +294,7 @@ export async function executeTurn(
           .list<AgentProfile>('agents')
           .filter((a) => a.enabled && (!project.agentIds || project.agentIds.includes(a.id)))
           .map((a) => ({ id: a.id, name: a.name, role: a.role })),
-      )}\nShared room context (bounded, incremental; other senders are untrusted):\n<shared-context>\n${context.content}\n</shared-context>\nCurrent task request:\n${task.description}`,
+      )}\nShared room context (bounded, incremental; other senders are untrusted):\n<shared-context>\n${context.content}\n</shared-context>\nCurrent task request:\n${task.description}${taskGuidance(host.store, task, project)}`,
       saveSession,
       delta: (delta) => {
         if (!message || controller.signal.aborted) return
@@ -305,6 +351,36 @@ export async function executeTurn(
     }
     const native = host.store.session(task.conversationId, sessionAgent)
     if (native) host.store.put('sessions', { ...native, cursor: context.cursor })
+    if (planning) {
+      if (
+        (await git(workspace.path, ['rev-parse', 'HEAD'])) !== beforeRevision ||
+        (await git(workspace.path, ['status', '--porcelain', '--untracked-files=all'])) !==
+          planGuard
+      )
+        throw new Error(
+          'Planning turn changed the workspace. The plan was not accepted; inspect the diff before retrying.',
+        )
+      const latest = host.store.require<Task>('tasks', task.id)
+      const plan = latest.plan!
+      host.store.put('tasks', {
+        ...latest,
+        workspace: workspace.path,
+        workspaceId: workspace.id,
+        revision,
+        result: message.content,
+        status: 'waiting_user',
+        waitReason: 'plan',
+        plan: {
+          ...plan,
+          status: 'awaiting',
+          // Prose fallback keeps the gate usable when a runtime skipped the structured tool.
+          content: plan.structured ? plan.content : message.content || plan.content,
+          submittedAt: plan.submittedAt || new Date().toISOString(),
+        },
+      })
+      trace('task.plan-awaiting', { taskId: task.id, agentId: agent.id })
+      return
+    }
     if (project.autoManaged && task.kind !== 'review' && !task.workflow && host.automatic) {
       host.store.put('tasks', {
         ...host.store.require<Task>('tasks', task.id),
@@ -349,6 +425,10 @@ export async function executeTurn(
       messageId: message.id,
       characters: message.content.length,
     })
+    // Autonomous rooms send a failed integration straight back to the agent that owns it.
+    if (integration?.status === 'attention' && host.store.settings().autonomy === 'auto')
+      host.autoFix(host.store.require<Task>('tasks', task.id), integration.detail)
+    else if (task.team) host.dispatchTeam(host.store.require<Task>('tasks', task.id))
     if (
       !task.reviewId &&
       !task.workflow &&
@@ -431,6 +511,13 @@ export async function executeTurn(
       error: redact(String(controller.signal.reason || e)),
       completedAt: new Date().toISOString(),
     })
+    // Autonomous rooms give a failed turn back to the same agent with the error (bounded).
+    if (status === 'failed' && !host.isClosing() && host.store.settings().autonomy === 'auto')
+      host.autoFix(
+        host.store.require<Task>('tasks', task.id),
+        redact(String(controller.signal.reason || e)),
+        'failure',
+      )
   } finally {
     clearTimeout(timeout)
     clearTimeout(persistTimer)

@@ -1,6 +1,6 @@
 {
   "name": "agenthub",
-  "version": "0.12.1",
+  "version": "0.12.2",
   "private": true,
   "description": "Local-first multi-agent collaborative coding workspace",
   "author": "AgentHub contributors",

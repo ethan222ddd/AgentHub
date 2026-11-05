@@ -4,24 +4,28 @@ import { backup } from 'node:sqlite'
 import { basename, join, resolve } from 'node:path'
 import { writeFile } from 'node:fs/promises'
 import { requestSchema } from '../../shared/schemas'
-import type { AgentProfile, Conversation, Project, Workspace } from '../../shared/types'
+import type { AgentProfile, Conversation, Project, Task, Workspace } from '../../shared/types'
 import { Store } from '../database/store'
 import { Orchestrator } from '../orchestrator/orchestrator'
 import { WorkspaceManager } from '../git/workspaces'
 import { Credentials } from '../app/credentials'
 import { validateRoot } from '../permissions/paths'
+import { diffFeedbackMessage } from '../orchestrator/feedback'
 import { AttachmentStore } from '../attachments/store'
 import { TestRunner } from '../tasks/tests'
 import { trace, diagnosticsPath } from '../app/diagnostics'
 import { BackupManager } from '../database/backup'
 import { ArtifactStore } from '../orchestrator/artifacts'
 import { ContextMemory } from '../orchestrator/context'
+import { deleteDecision, saveDecision } from '../orchestrator/decisions'
 import type { Review } from '../../shared/types'
 import { git } from '../git/workspaces'
 import { QuotaService } from '../agents/quota-service'
 import { processSupervisor } from '../agents/process-owner'
 import type { DesktopNotifications } from '../app/notifications'
 import type { WorkflowService } from '../workflows/service'
+import type { OverlapMonitor } from '../git/overlaps'
+import type { GitHubService } from '../github/service'
 
 export function makeHandler(
   store: Store,
@@ -32,7 +36,13 @@ export function makeHandler(
   window: () => BrowserWindow,
   notifications?: DesktopNotifications,
   workflows?: WorkflowService,
+  overlaps?: OverlapMonitor,
+  github?: GitHubService,
 ) {
+  const hub = () => {
+    if (!github) throw new Error('GitHub service unavailable')
+    return github
+  }
   const backups = new BackupManager(app.getPath('userData'))
   const quotas = new QuotaService(orchestrator.adapters)
   const attachments = new AttachmentStore(store, async (data) => {
@@ -71,6 +81,11 @@ export function makeHandler(
         if (!workflows) throw new Error('Workflow service unavailable')
         workflows.save(request.template)
         return null
+      case 'decision.save':
+        return saveDecision(store, request.projectId, request)
+      case 'decision.delete':
+        deleteDecision(store, request.projectId, request.id)
+        break
       case 'workflow.delete':
         if (!workflows) throw new Error('Workflow service unavailable')
         workflows.delete(request.id)
@@ -105,7 +120,43 @@ export function makeHandler(
       case 'processes.inspect':
         return processSupervisor.inspect()
       case 'snapshot':
-        return { ...store.snapshot(), diagnosticsPath: diagnosticsPath() }
+        return {
+          ...store.snapshot(),
+          diagnosticsPath: diagnosticsPath(),
+          overlaps: overlaps?.all() || {},
+        }
+      case 'github.status':
+        return hub().status(request.projectId, true)
+      case 'github.issues':
+        return hub().issues(request.projectId)
+      case 'github.issue.import': {
+        const c = store.require<Conversation>('conversations', request.conversationId)
+        if (tests.busy(c.projectId))
+          throw new Error('Wait for snapshot tests to finish before starting agents.')
+        return hub().importIssue(
+          request.conversationId,
+          request.number,
+          request.recipients,
+          request.planFirst,
+        )
+      }
+      case 'github.pr.prepare':
+        return hub().preparePr(request.taskId)
+      case 'github.pr.create':
+        return hub().createPr(request.taskId, request.title, request.body, request.branch)
+      case 'github.pr.push':
+        return hub().pushUpdate(request.taskId)
+      case 'github.pr.refresh':
+        return hub().refresh(request.taskId)
+      case 'github.ci.fix':
+        return hub().fixCi(request.taskId)
+      case 'github.open':
+        await shell.openExternal(request.url)
+        return null
+      case 'overlaps.scan':
+        store.require<Project>('projects', request.projectId)
+        if (!overlaps) throw new Error('Overlap monitor unavailable')
+        return overlaps.scan(request.projectId)
       case 'docs.guide': {
         const path = app.isPackaged
           ? join(process.resourcesPath, 'docs', 'USER_GUIDE.html')
@@ -221,8 +272,16 @@ export function makeHandler(
           request.recipients,
           request.replyTo,
           request.attachmentIds,
+          request.planFirst,
         )
       }
+      case 'task.plan':
+        return orchestrator.planAction(
+          request.id,
+          request.action,
+          request.content,
+          request.feedback,
+        )
       case 'stop':
         orchestrator.stop(request.conversationId)
         return null
@@ -348,8 +407,26 @@ export function makeHandler(
         idle(request.projectId)
         await workspaces.addDefaultIgnore(request.projectId)
         return null
-      case 'git.diff':
-        return workspaces.diff(store.require<Workspace>('workspaces', request.workspaceId))
+      case 'git.diff': {
+        const workspace = store.require<Workspace>('workspaces', request.workspaceId)
+        if (!request.taskId) return workspaces.diff(workspace)
+        const task = store.require<Task>('tasks', request.taskId)
+        if (
+          task.projectId !== workspace.projectId ||
+          task.workspace !== workspace.path ||
+          !task.revision
+        )
+          throw new Error('That task did not run in this workspace')
+        return workspaces.diff(workspace, task.revision)
+      }
+      case 'diff.feedback': {
+        const c = store.require<Conversation>('conversations', request.conversationId)
+        const workspace = store.require<Workspace>('workspaces', request.workspaceId)
+        if (workspace.projectId !== c.projectId || (workspace.kind && workspace.kind !== 'agent'))
+          throw new Error('Comments must target an agent workspace in this project')
+        const content = await diffFeedbackMessage(workspace, request.comments, request.note)
+        return orchestrator.send(c.id, content, [workspace.agentId])
+      }
       case 'git.checkpoint': {
         const w = store.require<Workspace>('workspaces', request.workspaceId)
         idle(w.projectId)

@@ -10,6 +10,10 @@ import {
   relatedIds,
   type BoardColumn,
 } from '../../lib/task-graph'
+import { HandoffCard } from './HandoffCard'
+import { PullRequestBox } from './PullRequestBox'
+import { OverlapList } from './OverlapList'
+import type { ProjectOverlaps } from '../../../shared/types'
 import { TaskStatusChip, statusTone } from './TaskStatus'
 
 const NODE_W = 184,
@@ -24,8 +28,20 @@ interface Props {
   allAgents: AgentProfile[]
   en: boolean
   openTask(id: string): void
+  overlaps?: ProjectOverlaps
+  projectId: string
+  perform(request: Record<string, unknown>): Promise<unknown>
 }
-export function TaskMap({ tasks, agents, allAgents, en, openTask }: Props) {
+export function TaskMap({
+  tasks,
+  agents,
+  allAgents,
+  en,
+  openTask,
+  overlaps,
+  projectId,
+  perform,
+}: Props) {
   const text = (zh: string, eng: string) => (en ? eng : zh)
   const [view, setView] = useState<'graph' | 'board'>(() => {
     try {
@@ -82,18 +98,36 @@ export function TaskMap({ tasks, agents, allAgents, en, openTask }: Props) {
 
   if (!tasks.length)
     return (
-      <div className="task-map-empty">
-        <Network size={22} strokeWidth={1.5} />
-        <p>
-          {text(
-            '還沒有任務。在聊天室指派工作，或用流程範本建立有依賴的任務，這裡會畫出誰在等誰。',
-            'No tasks yet. Assign work in chat or start a workflow; this map shows who is waiting on whom.',
-          )}
-        </p>
-      </div>
+      <>
+        {!!overlaps?.files.length && (
+          <OverlapList
+            overlaps={overlaps}
+            projectId={projectId}
+            allAgents={allAgents}
+            en={en}
+            perform={perform}
+          />
+        )}
+        <div className="task-map-empty">
+          <Network size={22} strokeWidth={1.5} />
+          <p>
+            {text(
+              '還沒有任務。在聊天室指派工作，或用流程範本建立有依賴的任務，這裡會畫出誰在等誰。',
+              'No tasks yet. Assign work in chat or start a workflow; this map shows who is waiting on whom.',
+            )}
+          </p>
+        </div>
+      </>
     )
   return (
     <div className="task-map">
+      <OverlapList
+        overlaps={overlaps}
+        projectId={projectId}
+        allAgents={allAgents}
+        en={en}
+        perform={perform}
+      />
       <div className="task-map-toolbar">
         <div className="segmented" role="group" aria-label={text('任務檢視', 'Task view')}>
           <button aria-pressed={view === 'graph'} onClick={() => choose('graph')}>
@@ -270,6 +304,8 @@ export function TaskMap({ tasks, agents, allAgents, en, openTask }: Props) {
             <p className="task-focus-description">{selectedTask.description}</p>
           )}
           {selectedTask.error && <pre className="error-text">{selectedTask.error}</pre>}
+          <HandoffCard task={selectedTask} en={en} />
+          <PullRequestBox task={selectedTask} en={en} perform={perform} />
           {!!selectedTask.dependencies.length && (
             <p className="muted">
               {text('依賴：', 'Depends on: ')}

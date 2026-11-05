@@ -5,6 +5,8 @@ import { Button } from '../../components/ui'
 import { ContextPanel } from '../ContextPanel'
 import { Usage } from '../Reviews'
 import { TaskForm } from '../WorkflowControls'
+import { HandoffCard } from './HandoffCard'
+import { PullRequestBox } from './PullRequestBox'
 interface Props {
   usage: UsageRecord[]
   en: boolean
@@ -147,6 +149,8 @@ export function ActivityPanel({
                     {text('重新嘗試整合（不重跑 Agent）', 'Retry integration (no agent rerun)')}
                   </Button>
                 )}
+              <HandoffCard task={task} en={en} />
+              <PullRequestBox task={task} en={en} perform={perform} />
               {task.result && <pre>{task.result.slice(-4000)}</pre>}
               {!!task.dependencies.length && (
                 <p className="muted">
@@ -231,6 +235,7 @@ export function ActivityPanel({
                   !task.supersededBy &&
                   task.waitReason !== 'approval' &&
                   task.waitReason !== 'integration' &&
+                  task.waitReason !== 'plan' &&
                   ['paused', 'failed', 'cancelled', 'waiting_user'].includes(task.status) && (
                     <Button
                       size="sm"

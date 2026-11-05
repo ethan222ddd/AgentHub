@@ -1,0 +1,142 @@
+/* Line-by-line diff with user comments. */
+.diff-review {
+  margin-top: 10px;
+}
+.diff-review-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.diff-review-bar select {
+  font-size: 12px;
+  max-width: 260px;
+}
+.diff-file {
+  margin: 10px 0;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.diff-file > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--sidebar);
+}
+.diff-file > summary code {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: Consolas, monospace;
+}
+.diff-stat b {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.diff-stat .add {
+  color: var(--tone-good);
+}
+.diff-stat .del {
+  color: var(--tone-critical);
+}
+.diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.55;
+  table-layout: fixed;
+}
+.diff-table .ln {
+  width: 38px;
+  padding: 0 6px;
+  text-align: right;
+  color: var(--muted);
+  user-select: none;
+  vertical-align: top;
+  font-variant-numeric: tabular-nums;
+}
+.diff-table .code {
+  padding: 0 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.diff-add {
+  background: color-mix(in srgb, var(--tone-good) 10%, transparent);
+}
+.diff-del {
+  background: color-mix(in srgb, var(--tone-critical) 9%, transparent);
+}
+.diff-hunk td,
+.diff-meta td {
+  color: var(--muted);
+  background: var(--hover);
+}
+.diff-hunk .code {
+  padding-block: 2px;
+}
+tr.commentable {
+  cursor: pointer;
+}
+tr.commentable:hover .ln {
+  color: var(--tone-active);
+  background: color-mix(in srgb, var(--tone-active) 10%, transparent);
+}
+.diff-comment td,
+.diff-comment-editor td {
+  padding: 8px 10px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  background: color-mix(in srgb, var(--tone-active) 7%, var(--surface));
+  border-block: 1px solid color-mix(in srgb, var(--tone-active) 25%, var(--border));
+}
+.diff-comment-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.diff-comment span {
+  flex: 1;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+.diff-comment button {
+  color: var(--muted);
+}
+.diff-comment-editor textarea {
+  width: 100%;
+  font-size: 12px;
+}
+.diff-comment-editor .actions {
+  margin-top: 6px;
+}
+.diff-review-send {
+  position: sticky;
+  bottom: -20px;
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--tone-active) 35%, var(--border));
+  background: var(--surface);
+  box-shadow: 0 -8px 24px #00000014;
+  font-size: 12.5px;
+}
+.diff-review-send textarea {
+  font-size: 12px;
+}
+.diff-review-send .button {
+  justify-self: start;
+}
+.diff-sent {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--tone-good);
+}

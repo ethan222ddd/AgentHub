@@ -3,6 +3,10 @@ import type { CollaborationInput } from '../../shared/schemas'
 export interface RunContext {
   images?: RuntimeImage[]
   readOnly?: boolean
+  /** Autonomous rooms: allow the native sandbox to reach the network (package installs). */
+  networkAccess?: boolean
+  /** Autonomous rooms: a denied tool is logged, not fatal, when the runtime otherwise succeeded. */
+  tolerateDenials?: boolean
   maxCostUsd?: number
   beforeContinuation?(): void
   usage?(usage: {

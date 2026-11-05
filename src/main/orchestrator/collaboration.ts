@@ -11,12 +11,15 @@ import type {
   Task,
   Workspace,
 } from '../../shared/types'
+import { isPlanning } from '../../shared/tasks'
 import { AttachmentStore } from '../attachments/store'
 import { Store } from '../database/store'
 import { git } from '../git/workspaces'
 import { withinWorkspace } from '../permissions/paths'
 import { ArtifactStore } from './artifacts'
 import { ContextMemory } from './context'
+import { proposeDecision } from './decisions'
+import { maxDepth } from './autonomy'
 
 export interface CollaborationHost {
   store: Store
@@ -42,6 +45,14 @@ export interface CollaborationHost {
   ): Task
   pump(): void
 }
+const planningOperations = new Set([
+  'propose_decision',
+  'search_context',
+  'read_context',
+  'read_artifact',
+  'report_progress',
+  'submit_plan',
+])
 export async function deliverCollaboration(
   host: CollaborationHost,
   task: Task,
@@ -50,6 +61,65 @@ export async function deliverCollaboration(
 ): Promise<unknown> {
   const c = host.store.require<Conversation>('conversations', task.conversationId)
   if (signal.aborted || c.stopped) throw new Error('Task or room stopped')
+  const current = host.store.get<Task>('tasks', task.id) || task
+  if (isPlanning(current) && !planningOperations.has(input.operation))
+    throw new Error(
+      'Planning phase: only read context/artifacts, report progress and submit_plan are allowed until the user approves the plan.',
+    )
+  if (input.operation === 'propose_decision') {
+    if (!input.decision?.title) throw new Error('propose_decision requires decision.title')
+    const decision = proposeDecision(host.store, current, input.decision.title, input.content)
+    host.changed()
+    return {
+      proposed: true,
+      decisionId: decision.id,
+      status: decision.status,
+      note: 'Proposed only. It applies to future tasks after the user accepts it.',
+    }
+  }
+  if (input.operation === 'submit_handoff') {
+    if (current.kind === 'review')
+      throw new Error('Reviews report through submit_review, not submit_handoff')
+    host.store.put('tasks', {
+      ...current,
+      handoff: {
+        summary: input.content,
+        changed: input.handoff?.changed || [],
+        tested: input.handoff?.tested || [],
+        untested: input.handoff?.untested || [],
+        questions: input.handoff?.questions || [],
+        next: input.handoff?.next || [],
+        submittedAt: new Date().toISOString(),
+      },
+    })
+    host.changed()
+    return {
+      submitted: true,
+      note: 'Handoff recorded for the user, reviewers and dependent tasks.',
+    }
+  }
+  if (input.operation === 'submit_plan') {
+    if (!isPlanning(current))
+      throw new Error('submit_plan is only accepted while a plan-first task is planning')
+    host.store.put('tasks', {
+      ...current,
+      plan: {
+        ...current.plan!,
+        content: input.content,
+        files: input.plan?.files || [],
+        steps: input.plan?.steps || [],
+        risks: input.plan?.risks || [],
+        verification: input.plan?.verification || '',
+        structured: true,
+        submittedAt: new Date().toISOString(),
+      },
+    })
+    host.changed()
+    return {
+      submitted: true,
+      note: 'Plan recorded. End this turn; the user will approve, edit or request revisions before any file is changed.',
+    }
+  }
   if (input.operation === 'search_context')
     return new ContextMemory(host.store.db).find(task.conversationId, input.content.slice(0, 500))
   if (input.operation === 'read_context')
@@ -86,6 +156,31 @@ export async function deliverCollaboration(
     host.store.activity(activity)
     host.publish({ type: 'activity', activity })
     return artifact
+  }
+  if (input.operation === 'submit_review' && !task.reviewId) {
+    // A tester/reviewer on an ordinary task reporting findings: share them with the team
+    // instead of failing the whole turn (and losing its work) over the operation name.
+    const findings = (input.comments || [])
+      .map((c) => `- [${c.severity}] ${c.file}:${c.line} ${c.content}`)
+      .join('\n')
+    host.store.put('messages', {
+      id: randomUUID(),
+      projectId: task.projectId,
+      conversationId: task.conversationId,
+      senderId: task.agentId,
+      recipientIds: input.recipients.length ? input.recipients : ['user'],
+      content: `Review report${input.verdict ? ` (${input.verdict})` : ''}:\n${input.content}${findings ? `\n${findings}` : ''}`,
+      type: 'collaboration',
+      timestamp: new Date().toISOString(),
+      taskId: task.id,
+      correlationId: task.correlationId,
+      delivery: 'completed',
+    } satisfies Message)
+    host.changed()
+    return {
+      recorded: true,
+      note: 'Recorded as a review report for the team. To get fixes, assign_task the owning agent with the exact findings.',
+    }
   }
   if (input.operation === 'submit_review') {
     if (!task.reviewId || !input.verdict)
@@ -173,7 +268,7 @@ export async function deliverCollaboration(
   // Validate the entire fanout before writing any delivery receipts.
   if (activates) {
     new AttachmentStore(host.store).resolve(task.projectId, input.attachmentIds || [])
-    if (task.depth + 1 > host.store.settings().maxDepth)
+    if (task.depth + 1 > maxDepth(host.store.settings()))
       throw new Error('Delegation depth limit reached')
     if (host.turnCount(task.correlationId) + recipients.length > host.store.settings().maxTurns)
       throw new Error('Agent turn budget reached')

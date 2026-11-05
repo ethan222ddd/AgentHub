@@ -6,6 +6,7 @@ import {
   Circle,
   FolderPlus,
   GitBranch,
+  GitMerge,
   Search,
   ShieldCheck,
   Workflow,
@@ -20,6 +21,7 @@ import { MessageList } from './features/chat/MessageList'
 import { Sidebar } from './features/chat/Sidebar'
 import { WorkspaceHeader } from './features/chat/WorkspaceHeader'
 import { ApprovalQueue } from './features/ApprovalQueue'
+import { IssueImport } from './features/IssueImport'
 import { Settings } from './features/Settings'
 import { SidePanel } from './features/SidePanel'
 import { TeamEditor } from './features/TeamEditor'
@@ -50,6 +52,7 @@ export function App() {
   const [teamOpen, setTeamOpen] = useState(false)
   const [workflowOpen, setWorkflowOpen] = useState(false)
   const [queueOpen, setQueueOpen] = useState(false)
+  const [issuesOpen, setIssuesOpen] = useState(false)
   const [panel, setPanel] = useState('')
   const [input, setInput] = useState('')
   const [recipients, setRecipients] = useState<string[]>([])
@@ -61,6 +64,7 @@ export function App() {
   const [reply, setReply] = useState<Message>()
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [sending, setSending] = useState(false)
+  const [planFirst, setPlanFirst] = useState(false)
   const [modelSaving, setModelSaving] = useState(false)
   const scroll = useRef<HTMLDivElement>(null)
   const nearBottom = useRef(true)
@@ -205,6 +209,7 @@ export function App() {
         recipients: [...new Set(targets)],
         replyTo: reply?.id,
         attachmentIds: attachments.map((a) => a.id),
+        ...(planFirst && targets.length ? { planFirst: true } : {}),
       })
       if (useWorkspace.getState().selectionEpoch === epoch) {
         setInput((value) => (value === sentInput ? '' : value))
@@ -289,6 +294,7 @@ export function App() {
           setPanel={setPanel}
           pendingApprovals={approvals.length}
           openQueue={() => setQueueOpen(true)}
+          openIssues={() => setIssuesOpen(true)}
         />
         {snapshot.conversations
           .filter(
@@ -333,6 +339,20 @@ export function App() {
               </Button>
             </div>
           ))}
+        {project && !!snapshot.overlaps?.[project.id]?.files.length && panel !== 'tasks' && (
+          <div className="overlap-strip" role="status">
+            <GitMerge size={15} />
+            <span>
+              {text(
+                `可能的合併衝突：${snapshot.overlaps[project.id].files.length} 個檔案同時被多位代理修改`,
+                `Possible merge conflict: ${snapshot.overlaps[project.id].files.length} files changed by several agents`,
+              )}
+            </span>
+            <Button size="sm" variant="ghost" onClick={() => setPanel('tasks')}>
+              {text('查看檔案', 'View files')}
+            </Button>
+          </div>
+        )}
         {searchOpen && (
           <div className="search-strip">
             <Search size={16} />
@@ -515,6 +535,8 @@ export function App() {
               setModelSaving={setModelSaving}
               sending={sending}
               modelSaving={modelSaving}
+              planFirst={planFirst}
+              setPlanFirst={setPlanFirst}
             />
           </div>
           {panel && project && (
@@ -545,6 +567,7 @@ export function App() {
               allTasks={snapshot.tasks}
               conversations={snapshot.conversations}
               openQueue={() => setQueueOpen(true)}
+              overlaps={snapshot.overlaps?.[project.id]}
             />
           )}
         </div>
@@ -568,6 +591,20 @@ export function App() {
             setWorkflowOpen(false)
             setPanel('activity')
             setInput('')
+          }}
+        />
+      )}
+      {issuesOpen && project && conversation && (
+        <IssueImport
+          project={project}
+          conversation={conversation}
+          agents={agents}
+          en={en}
+          perform={perform}
+          close={() => setIssuesOpen(false)}
+          imported={() => {
+            setIssuesOpen(false)
+            setPanel('activity')
           }}
         />
       )}

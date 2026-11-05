@@ -3,6 +3,7 @@ import {
   AtSign,
   Bot,
   ChevronDown,
+  ClipboardCheck,
   MessageSquare,
   PanelRight,
   Paperclip,
@@ -12,6 +13,7 @@ import {
   ShieldCheck,
   Square,
   X,
+  Zap,
 } from 'lucide-react'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { isTaskActive, taskStatusLabel } from '../../../shared/tasks'
@@ -60,6 +62,8 @@ interface Props {
   setModelSaving: Dispatch<SetStateAction<boolean>>
   sending: boolean
   modelSaving: boolean
+  planFirst: boolean
+  setPlanFirst: Dispatch<SetStateAction<boolean>>
 }
 export function ChatComposer({
   active,
@@ -92,6 +96,8 @@ export function ChatComposer({
   setModelSaving,
   sending,
   modelSaving,
+  planFirst,
+  setPlanFirst,
 }: Props) {
   return (
     <div className="composer-wrap">
@@ -262,6 +268,47 @@ export function ChatComposer({
             </div>
           </div>
           <div className="composer-right">
+            <Button
+              size="sm"
+              variant={snapshot.settings.autonomy === 'auto' ? 'outline' : 'ghost'}
+              className={`plan-toggle autonomy-toggle ${snapshot.settings.autonomy === 'auto' ? 'on' : ''}`}
+              aria-pressed={snapshot.settings.autonomy === 'auto'}
+              title={text(
+                '全自動：依安全規則自動批准，代理分工做到完成；關閉後每個工具請求都等你批准',
+                'Autonomous: host policy approves and the team works to completion; off = every tool request waits for you',
+              )}
+              onClick={() => {
+                const { id: _id, ...settings } = snapshot.settings as typeof snapshot.settings & {
+                  id?: string
+                }
+                void _id
+                void perform({
+                  op: 'settings.save',
+                  settings: {
+                    ...settings,
+                    autonomy: snapshot.settings.autonomy === 'auto' ? 'ask' : 'auto',
+                  },
+                })
+              }}
+            >
+              <Zap size={14} />
+              <span>{text('全自動', 'Autonomous')}</span>
+            </Button>
+            <Button
+              size="sm"
+              variant={planFirst ? 'outline' : 'ghost'}
+              className={`plan-toggle ${planFirst ? 'on' : ''}`}
+              aria-pressed={planFirst}
+              disabled={!recipients.length}
+              title={text(
+                '代理先在唯讀模式提出計畫，你批准後才開始改檔',
+                'Agents propose a plan read-only; files change only after you approve',
+              )}
+              onClick={() => setPlanFirst(!planFirst)}
+            >
+              <ClipboardCheck size={14} />
+              <span>{text('先提計畫', 'Plan first')}</span>
+            </Button>
             {conversation && (
               <ModelControl
                 key={conversation.id}

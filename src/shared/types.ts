@@ -1,6 +1,19 @@
 export type Provider = 'codex' | 'claude' | 'antigravity'
 export type Mode = 'manual' | 'collaborative' | 'supervisor'
+/** A project-level decision. Accepted ones are given to every task in the project. */
+export interface Decision {
+  id: string
+  title: string
+  detail: string
+  status: 'proposed' | 'accepted' | 'rejected'
+  /** 'user' or the proposing agent's id. */
+  proposedBy: string
+  taskId?: string
+  createdAt: string
+  decidedAt?: string
+}
 export interface Project {
+  decisions?: Decision[]
   autoManaged?: boolean
   setup?: {
     state: 'preparing' | 'ready' | 'attention' | 'error'
@@ -74,7 +87,80 @@ export type TaskStatus =
   | 'failed'
   | 'cancelled'
   | 'paused'
+/** Plan-first tasks pause after a read-only planning turn until the user approves. */
+export interface TaskPlan {
+  status: 'drafting' | 'awaiting' | 'approved' | 'revising'
+  content: string
+  files: string[]
+  steps: string[]
+  risks: string[]
+  verification: string
+  /** False when the agent answered in prose instead of the structured submit_plan tool. */
+  structured: boolean
+  feedback?: string
+  revisions: number
+  submittedAt?: string
+  approvedAt?: string
+}
+/** What an agent reports when it finishes: the reviewer and the next agent start here. */
+export interface TaskHandoff {
+  summary: string
+  changed: string[]
+  tested: string[]
+  untested: string[]
+  questions: string[]
+  next: string[]
+  submittedAt: string
+}
+export interface PullRequestChecks {
+  state: 'pending' | 'passing' | 'failing' | 'none'
+  failing: { name: string; runId?: string; url?: string }[]
+  checkedAt: string
+}
+/** A PR the user opened from this task's workspace, plus its last known CI state. */
+export interface PullRequestLink {
+  url: string
+  number: number
+  repo: string
+  branch: string
+  base: string
+  createdAt: string
+  state?: 'OPEN' | 'CLOSED' | 'MERGED'
+  checks?: PullRequestChecks
+}
+export type TaskSource =
+  | { kind: 'github_issue'; number: number; url: string; title: string }
+  | { kind: 'ci_fix'; prUrl: string }
+export interface GitHubStatus {
+  available: boolean
+  authenticated: boolean
+  account?: string
+  repo?: { nameWithOwner: string; url: string; defaultBranch: string }
+  error?: string
+}
+export interface GitHubIssue {
+  number: number
+  title: string
+  url: string
+  labels: string[]
+  author: string
+  updatedAt: string
+}
+export interface PullRequestPreview {
+  repo: string
+  base: string
+  branch: string
+  title: string
+  body: string
+  commits: string[]
+  files: string[]
+}
 export interface Task {
+  pullRequest?: PullRequestLink
+  source?: TaskSource
+  handoff?: TaskHandoff
+  planFirst?: boolean
+  plan?: TaskPlan
   workflow?: { runId: string; stepId: string }
   nativeTurns?: number
   integration?: {
@@ -85,8 +171,12 @@ export interface Task {
   }
   runtime?: RuntimeSelection
   retryOf?: string
+  /** Set on a host-created fix attempt after a failed automatic integration. */
+  autoFix?: number
+  /** The lead task of an autonomous team run, and the teammates it coordinates. */
+  team?: { lead: string; members: string[] }
   supersededBy?: string
-  waitReason?: 'dependencies' | 'workspace_lock' | 'approval' | 'recovery' | 'integration'
+  waitReason?: 'dependencies' | 'workspace_lock' | 'approval' | 'recovery' | 'integration' | 'plan'
   blockedBy?: string[]
   failureKind?: 'runtime' | 'timeout' | 'cancelled' | 'interrupted'
   startedAt?: string
@@ -178,6 +268,8 @@ export interface TestRun {
   error?: string
 }
 export interface Settings {
+  /** auto: agents run to completion with host safety rules; ask: every tool request waits for the user. */
+  autonomy: 'auto' | 'ask'
   notifications: 'all' | 'approvals' | 'off'
   maxUsageTokens: number
   maxCostUsd: number
@@ -195,7 +287,19 @@ export interface Settings {
   timeoutMs: number
   supervisorId: string
 }
+/** One file changed, but not yet integrated, in two or more agents' workspaces. */
+export interface FileOverlap {
+  path: string
+  agents: { agentId: string; workspaceId: string; uncommitted: boolean }[]
+}
+export interface ProjectOverlaps {
+  files: FileOverlap[]
+  scannedAt: string
+  /** Workspaces that could not be inspected (missing path, Git error). */
+  skipped: number
+}
 export interface Snapshot {
+  overlaps?: Record<string, ProjectOverlaps>
   workflowTemplates: WorkflowTemplate[]
   workflowRuns: WorkflowRun[]
   usage: UsageRecord[]

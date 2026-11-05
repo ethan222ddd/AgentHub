@@ -13,3 +13,9 @@
 @import './styles/task-map.css';
 @import './styles/usage.css';
 @import './styles/approvals.css';
+@import './styles/plans.css';
+@import './styles/handoff.css';
+@import './styles/decisions.css';
+@import './styles/overlaps.css';
+@import './styles/diff-review.css';
+@import './styles/github.css';

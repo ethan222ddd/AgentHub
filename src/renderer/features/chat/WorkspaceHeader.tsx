@@ -1,6 +1,7 @@
 import {
   Activity as ActivityIcon,
   Bot,
+  CircleDot,
   GitBranch,
   Network,
   PanelLeft,
@@ -33,6 +34,7 @@ interface Props {
   setPanel: Dispatch<SetStateAction<string>>
   pendingApprovals: number
   openQueue(): void
+  openIssues(): void
 }
 export function WorkspaceHeader({
   project,
@@ -49,7 +51,11 @@ export function WorkspaceHeader({
   setPanel,
   pendingApprovals,
   openQueue,
+  openIssues,
 }: Props) {
+  const plansWaiting = tasks.filter(
+    (t) => !t.supersededBy && t.status === 'waiting_user' && t.waitReason === 'plan',
+  ).length
   return (
     <header className="workspace-header">
       <div className="project-heading">
@@ -113,6 +119,12 @@ export function WorkspaceHeader({
           <Workflow size={15} />
           <span>{text('流程', 'Workflows')}</span>
         </Button>
+        {project && conversation && (
+          <Button size="sm" variant="ghost" onClick={openIssues}>
+            <CircleDot size={15} />
+            <span>Issues</span>
+          </Button>
+        )}
         {project && (
           <Button size="sm" variant="ghost" onClick={() => setTeamOpen(true)}>
             <Bot size={15} />
@@ -126,7 +138,9 @@ export function WorkspaceHeader({
         >
           <ActivityIcon size={15} />
           <span>{text('活動', 'Activity')}</span>
-          {!!roomApprovals.length && <b className="count">{roomApprovals.length}</b>}
+          {!!(roomApprovals.length + plansWaiting) && (
+            <b className="count">{roomApprovals.length + plansWaiting}</b>
+          )}
         </Button>
         <Button
           variant={panel === 'tasks' ? 'outline' : 'ghost'}

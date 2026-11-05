@@ -42,6 +42,7 @@ export const agentSchema = z
   .strict()
 export const settingsSchema = z
   .object({
+    autonomy: z.enum(['auto', 'ask']).default('auto'),
     notifications: z.enum(['all', 'approvals', 'off']).default('all'),
     theme: z.enum(['dark', 'light', 'system']),
     language: z.enum(['zh-TW', 'en']),
@@ -75,6 +76,9 @@ export const collaborationSchema = z
       'submit_review',
       'search_context',
       'read_context',
+      'submit_plan',
+      'submit_handoff',
+      'propose_decision',
     ]),
     recipients: z.array(id).max(8),
     content: z.string().min(1).max(16000),
@@ -84,6 +88,29 @@ export const collaborationSchema = z
     messageIds: z.array(id).max(6).optional(),
     attachmentIds: z.array(id).max(8).optional(),
     verdict: z.enum(['approve', 'changes_requested']).optional(),
+    plan: z
+      .object({
+        files: z.array(z.string().min(1).max(1024)).max(60).default([]),
+        steps: z.array(z.string().min(1).max(2000)).max(30).default([]),
+        risks: z.array(z.string().min(1).max(2000)).max(20).default([]),
+        verification: z.string().max(4000).default(''),
+      })
+      .strict()
+      .optional(),
+    decision: z
+      .object({ title: z.string().trim().min(1).max(200) })
+      .strict()
+      .optional(),
+    handoff: z
+      .object({
+        changed: z.array(z.string().min(1).max(1000)).max(40).default([]),
+        tested: z.array(z.string().min(1).max(1000)).max(30).default([]),
+        untested: z.array(z.string().min(1).max(1000)).max(30).default([]),
+        questions: z.array(z.string().min(1).max(1000)).max(20).default([]),
+        next: z.array(z.string().min(1).max(1000)).max(20).default([]),
+      })
+      .strict()
+      .optional(),
     comments: z
       .array(
         z
@@ -150,6 +177,55 @@ export const workflowTemplateSchema = z
 export const requestSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('workflow.save'), template: workflowTemplateSchema }).strict(),
   z.object({ op: z.literal('workflow.delete'), id }).strict(),
+  z.object({ op: z.literal('overlaps.scan'), projectId: id }).strict(),
+  z.object({ op: z.literal('github.status'), projectId: id }).strict(),
+  z.object({ op: z.literal('github.issues'), projectId: id }).strict(),
+  z
+    .object({
+      op: z.literal('github.issue.import'),
+      conversationId: id,
+      number: z.number().int().positive(),
+      recipients: z.array(id).min(1).max(8),
+      planFirst: z.boolean().optional(),
+    })
+    .strict(),
+  z.object({ op: z.literal('github.pr.prepare'), taskId: id }).strict(),
+  z
+    .object({
+      op: z.literal('github.pr.create'),
+      taskId: id,
+      title: z.string().trim().min(1).max(256),
+      body: z.string().max(60000),
+      branch: z
+        .string()
+        .regex(/^agenthub\/[A-Za-z0-9._-]{1,80}$/)
+        .refine((b) => !b.includes('..') && !b.endsWith('.lock') && !b.endsWith('.')),
+    })
+    .strict(),
+  z.object({ op: z.literal('github.pr.push'), taskId: id }).strict(),
+  z.object({ op: z.literal('github.pr.refresh'), taskId: id }).strict(),
+  z.object({ op: z.literal('github.ci.fix'), taskId: id }).strict(),
+  z
+    .object({
+      op: z.literal('github.open'),
+      url: z
+        .string()
+        .url()
+        .max(2048)
+        .refine((u) => u.startsWith('https://github.com/')),
+    })
+    .strict(),
+  z
+    .object({
+      op: z.literal('decision.save'),
+      projectId: id,
+      id: id.optional(),
+      title: z.string().trim().min(1).max(200),
+      detail: z.string().trim().max(4000),
+      status: z.enum(['proposed', 'accepted', 'rejected']),
+    })
+    .strict(),
+  z.object({ op: z.literal('decision.delete'), projectId: id, id }).strict(),
   z
     .object({
       op: z.literal('workflow.start'),
@@ -235,7 +311,17 @@ export const requestSchema = z.discriminatedUnion('op', [
     recipients: z.array(id).max(8),
     replyTo: id.optional(),
     attachmentIds: z.array(id).max(8).optional(),
+    planFirst: z.boolean().optional(),
   }),
+  z
+    .object({
+      op: z.literal('task.plan'),
+      id,
+      action: z.enum(['approve', 'revise', 'cancel']),
+      content: z.string().trim().min(1).max(32000).optional(),
+      feedback: z.string().trim().min(1).max(8000).optional(),
+    })
+    .strict(),
   z.object({ op: z.literal('stop'), conversationId: id }),
   z.object({ op: z.literal('resume'), conversationId: id }),
   z.object({ op: z.literal('task.action'), id, action: z.enum(['pause', 'resume', 'cancel']) }),
@@ -265,7 +351,27 @@ export const requestSchema = z.discriminatedUnion('op', [
     files: z.array(z.string().min(1).max(4096)).min(1).max(1000),
   }),
   z.object({ op: z.literal('git.ignore'), projectId: id }),
-  z.object({ op: z.literal('git.diff'), workspaceId: id }),
+  z.object({ op: z.literal('git.diff'), workspaceId: id, taskId: id.optional() }),
+  z
+    .object({
+      op: z.literal('diff.feedback'),
+      conversationId: id,
+      workspaceId: id,
+      comments: z
+        .array(
+          z
+            .object({
+              file: z.string().min(1).max(1024),
+              line: z.number().int().min(1),
+              content: z.string().trim().min(1).max(4000),
+            })
+            .strict(),
+        )
+        .min(1)
+        .max(50),
+      note: z.string().trim().max(4000).optional(),
+    })
+    .strict(),
   z.object({
     op: z.literal('git.checkpoint'),
     workspaceId: id,

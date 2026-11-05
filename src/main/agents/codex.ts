@@ -270,6 +270,17 @@ export class CodexAdapter implements AgentAdapter {
           threadId: nativeId,
           model: ctx.agent.model || undefined,
           input: [{ type: 'text', text: ctx.prompt, text_elements: [] }, ...images.inputs],
+          // Autonomous rooms let the sandbox reach the network (npm install) while keeping
+          // writes confined to the assigned workspace.
+          ...(ctx.networkAccess && !ctx.readOnly
+            ? {
+                sandboxPolicy: {
+                  type: 'workspaceWrite',
+                  networkAccess: true,
+                  writableRoots: [ctx.workspace],
+                },
+              }
+            : {}),
         })
         turnId = started.turn.id
         ctx.emit('turn.started', 'Codex running', turnId)

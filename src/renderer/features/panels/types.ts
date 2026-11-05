@@ -4,4 +4,5 @@ export interface Diff {
   revision: string
   path: string
   branch: string
+  since?: string
 }

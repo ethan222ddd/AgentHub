@@ -4,9 +4,20 @@
 
 [GitHub 原始碼](https://github.com/ethan222ddd/AgentHub) · [Windows CI／安裝包](https://github.com/ethan222ddd/AgentHub/actions/workflows/windows.yml) · [開發與模組指南](docs/DEVELOPMENT.md)
 
+**v0.12.2：全自動團隊模式。** 一則訊息指定多位代理時，由主導代理定好分工並分派，其他人依角色接手、測試者最後驗證；工具請求依 Host 政策自動放行並留下紀錄，失敗自動交回修正，預設不停下來等你。實測一則提示即由 Codex、Claude、Antigravity 完成可運作的待辦清單網頁。用法見使用手冊第 19 章「全自動模式」。
+
 **v0.12.1：工程維護。** 建立 Git 基準與原始碼追蹤，拆分排程／回合／協作／批准／審查、聊天室、設定、活動面板、範本頁與 CSS。沿用原有功能與權限政策；生成檔和本機維護資料保持忽略追蹤。
 
 [Windows CI 已通過](https://github.com/ethan222ddd/AgentHub/actions/runs/41943842088)：27 個測試檔／161 項離線測試、11 項 Electron E2E（含打包版啟動）、NSIS 與 Portable 建置成功。驗證程式碼為 `07da02579301a2e045daf75bca8df1ffd240ca0c`；本輪未重跑付費 Live。
+
+**協作與交付工具（PR #1、#2，尚未合併）**：
+
+- **看進度**：任務依賴圖／看板、檔案衝突預警、用量與花費趨勢。
+- **控制**：鍵盤批准佇列（`Ctrl+Shift+A`）、先提計畫（唯讀計畫，批准後才改檔）、專案決策紀錄。
+- **回饋**：結構化交接摘要、Diff 行內意見。
+- **交付**：用你自己登入的 GitHub CLI 匯入 Issue、從任務開 PR，CI 失敗時交回代理修正。
+
+用法見使用手冊第 19 章。
 
 首次使用請讀 [繁體中文使用手冊](docs/USER_GUIDE.zh-TW.md)／[離線 HTML 手冊](docs/USER_GUIDE.html)。目前距離正式版尚缺的功能與驗收見 [發佈準備清單](docs/RELEASE_READINESS.md)。
 
@@ -24,9 +35,9 @@
 
 下載 [v0.12.1 Windows x64 安裝包](https://github.com/ethan222ddd/AgentHub/actions/runs/41943842088/artifacts/13377538391)（GitHub Actions Artifact，可能需要登入 GitHub，保留至 2026-11-12；不是正式 GitHub Release）。解壓後選擇 `AgentHub Setup 0.12.1.exe` 或 `AgentHub-0.12.1-portable.exe`。
 
-自行打包的安裝程式位於 `release/0.12.1/AgentHub Setup 0.12.1.exe`，免安裝版位於 `release/0.12.1/AgentHub-0.12.1-portable.exe`；CI 產物不會自動下載到本機。
+自行打包的安裝程式位於 `release/0.12.2/AgentHub Setup 0.12.2.exe`，免安裝版位於 `release/0.12.2/AgentHub-0.12.2-portable.exe`；CI 產物不會自動下載到本機。
 
-平常使用安裝版或 Portable。開發用解壓版可執行 `npm run package:dir` 重新建立，再開啟 `release/0.12.1/win-unpacked/AgentHub.exe`。Portable 預設資料在執行檔旁 `AgentHubData`，安裝版使用 Electron 使用者資料目錄；實際位置在設定顯示。安裝包尚未簽章。卸載不刪除聊天資料與使用者專案。使用 Schema 8，可遷移讀取舊資料，舊版 App 不可開啟新版資料庫；升級前先備份。Portable 採 electron-builder 官方 ZIP payload；體積包含 Electron 與執行所需元件。
+平常使用安裝版或 Portable。開發用解壓版可執行 `npm run package:dir` 重新建立，再開啟 `release/0.12.2/win-unpacked/AgentHub.exe`。Portable 預設資料在執行檔旁 `AgentHubData`，安裝版使用 Electron 使用者資料目錄；實際位置在設定顯示。安裝包尚未簽章。卸載不刪除聊天資料與使用者專案。使用 Schema 8，可遷移讀取舊資料，舊版 App 不可開啟新版資料庫；升級前先備份。Portable 採 electron-builder 官方 ZIP payload；體積包含 Electron 與執行所需元件。
 
 原始碼需要 Node.js 24、npm、Git；Windows 守護器以系統 .NET Framework 4.x 的 Framework64 csc.exe 自動編譯：
 

@@ -1,6 +1,7 @@
 import { Check, GitBranch, RefreshCw } from 'lucide-react'
 import type { Dispatch, SetStateAction } from 'react'
-import type { AgentProfile, Project, TestRun, Workspace } from '../../../shared/types'
+import type { AgentProfile, Project, Task, TestRun, Workspace } from '../../../shared/types'
+import { DiffReview } from './DiffReview'
 import { Button } from '../../components/ui'
 import { InitialCommit, TestTools } from '../WorkflowControls'
 import type { Diff } from './types'
@@ -49,6 +50,8 @@ interface Props {
       }
     | undefined
   tests: TestRun[]
+  tasks: Task[]
+  conversationId: string
 }
 export function ChangesPanel({
   text,
@@ -70,7 +73,11 @@ export function ChangesPanel({
   diff,
   preview,
   tests,
+  tasks,
+  conversationId,
 }: Props) {
+  // Agent workspaces get line comments; the primary project diff stays read-only.
+  const reviewed = diff && workspaces.find((w) => w.path === diff.path && w.agentId !== 'user')
   return (
     <>
       <div className="section-title">
@@ -330,18 +337,32 @@ export function ChangesPanel({
         <>
           <code className="data-path">{diff.path}</code>
           <small className="muted">HEAD {diff.revision.slice(0, 12)}</small>
-          <pre className="git-status">
-            {diff.status || text('工作區乾淨', 'Working tree clean')}
-          </pre>
-          <p className="muted">
-            {text(
-              '未追蹤檔案僅列出名稱；內容未包含在下方 Diff。',
-              'Untracked files are listed above; their content is absent from this diff.',
-            )}
-          </p>
-          <pre className="diff-view">
-            {diff.diff || text('無已追蹤檔案變更', 'No tracked changes')}
-          </pre>
+          {reviewed ? (
+            <DiffReview
+              workspace={reviewed}
+              diff={diff}
+              tasks={tasks}
+              agents={agents}
+              conversationId={conversationId}
+              en={en}
+              perform={perform}
+            />
+          ) : (
+            <>
+              <pre className="git-status">
+                {diff.status || text('工作區乾淨', 'Working tree clean')}
+              </pre>
+              <p className="muted">
+                {text(
+                  '未追蹤檔案僅列出名稱；內容未包含在下方 Diff。',
+                  'Untracked files are listed above; their content is absent from this diff.',
+                )}
+              </p>
+              <pre className="diff-view">
+                {diff.diff || text('無已追蹤檔案變更', 'No tracked changes')}
+              </pre>
+            </>
+          )}
         </>
       )}
       {preview && (
